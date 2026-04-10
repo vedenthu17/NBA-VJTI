@@ -11,6 +11,8 @@ const tableSchemas = {
     doi: z.string().optional().default(""),
     type: z.string().optional().default("journal"),
     indexed: z.string().optional().default(""),
+    reference_url: z.string().url().optional().or(z.literal("")),
+    pdf_url: z.string().url().optional().or(z.literal("")),
     scopus: z.boolean().optional().default(false),
     wos: z.boolean().optional().default(false),
   }),
@@ -30,6 +32,8 @@ const tableSchemas = {
     amount: z.number().optional().default(0),
     year: z.number().int().optional().default(new Date().getFullYear()),
     status: z.string().optional().default("ongoing"),
+    reference_url: z.string().url().optional().or(z.literal("")),
+    pdf_url: z.string().url().optional().or(z.literal("")),
   }),
   patents: z.object({
     faculty_id: z.string().uuid(),
@@ -37,6 +41,8 @@ const tableSchemas = {
     status: z.string().optional().default("filed"),
     year: z.number().int().optional().default(new Date().getFullYear()),
     number: z.string().optional().default(""),
+    reference_url: z.string().url().optional().or(z.literal("")),
+    pdf_url: z.string().url().optional().or(z.literal("")),
   }),
   books: z.object({
     faculty_id: z.string().uuid(),
@@ -44,6 +50,8 @@ const tableSchemas = {
     publisher: z.string().optional().default(""),
     isbn: z.string().optional().default(""),
     year: z.number().int().optional().default(new Date().getFullYear()),
+    reference_url: z.string().url().optional().or(z.literal("")),
+    pdf_url: z.string().url().optional().or(z.literal("")),
   }),
   collaborations: z.object({
     faculty_id: z.string().uuid(),
@@ -64,6 +72,9 @@ const tableSchemas = {
   awards: z.object({
     faculty_id: z.string().uuid(),
     title: z.string().min(2),
+    membership: z.string().optional().default(""),
+    honors: z.string().optional().default(""),
+    contributions: z.string().optional().default(""),
     year: z.number().int().optional().default(new Date().getFullYear()),
     description: z.string().optional().default(""),
   }),
@@ -80,6 +91,14 @@ const tableSchemas = {
     proof_url: z.string().url(),
     description: z.string().optional().default(""),
     year: z.number().int().optional().default(new Date().getFullYear()),
+  }),
+  miscellaneous_items: z.object({
+    faculty_id: z.string().uuid(),
+    title: z.string().min(2),
+    description: z.string().optional().default(""),
+    reference_url: z.string().url().optional().or(z.literal("")),
+    pdf_url: z.string().url().optional().or(z.literal("")),
+    custom_fields: z.record(z.string()).optional().default({}),
   }),
   qualifications: z.object({
     faculty_id: z.string().uuid(),

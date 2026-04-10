@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
 	approveEntry,
+	queryFacultyKnowledge,
 	getApprovalHistory,
 	getAuditTimeline,
 	getFacultyDirectory,
@@ -20,6 +21,7 @@ router.get("/pending", getPendingEntries);
 router.get("/audit", getAuditTimeline);
 router.get("/history", getApprovalHistory);
 router.get("/faculty", getFacultyDirectory);
+router.get("/query", queryFacultyKnowledge);
 router.put("/approve/:table/:id", approveEntry);
 router.delete("/reject/:table/:id", rejectEntry);
 router.delete("/remove/:table/:id", removeEntryByAdmin);

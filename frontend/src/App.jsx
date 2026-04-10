@@ -8,6 +8,7 @@ import FacultyProfilePage from "./pages/FacultyProfilePage";
 import AdminPage from "./pages/AdminPage";
 import AdminHistoryPage from "./pages/AdminHistoryPage";
 import AdminFacultyPage from "./pages/AdminFacultyPage";
+import AdminQueryPage from "./pages/AdminQueryPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { useAuth } from "./context/AuthContext";
 import { facultyApi } from "./api/facultyApi";
@@ -64,6 +65,7 @@ export default function App() {
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/admin/history" element={<AdminHistoryPage />} />
           <Route path="/admin/faculty" element={<AdminFacultyPage />} />
+          <Route path="/admin/query" element={<AdminQueryPage />} />
         </Route>
 
         <Route path="*" element={<NotFoundPage />} />

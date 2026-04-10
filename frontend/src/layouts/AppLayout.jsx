@@ -153,6 +153,13 @@ export default function AppLayout() {
                     >
                       Faculty Directory
                     </Link>
+                    <Link
+                      to="/admin/query"
+                      onClick={() => setOpenProfileMenu(false)}
+                      className="block rounded px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                    >
+                      Query Search
+                    </Link>
                   </div>
                 )}
               </div>

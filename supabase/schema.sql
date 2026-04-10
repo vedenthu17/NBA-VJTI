@@ -20,6 +20,10 @@ create table if not exists public.faculty (
   email text not null,
   phone text not null,
   photo_url text,
+  linkedin_url text,
+  github_url text,
+  google_scholar_url text,
+  website_url text,
   research_area text,
   bio text,
   experience_teaching int default 0,
@@ -32,6 +36,11 @@ create table if not exists public.faculty (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.faculty add column if not exists linkedin_url text;
+alter table public.faculty add column if not exists github_url text;
+alter table public.faculty add column if not exists google_scholar_url text;
+alter table public.faculty add column if not exists website_url text;
 
 create table if not exists public.qualifications (
   id uuid primary key default gen_random_uuid(),
@@ -59,6 +68,8 @@ create table if not exists public.publications (
   doi text,
   type text,
   indexed text,
+  reference_url text,
+  pdf_url text,
   scopus boolean default false,
   wos boolean default false,
   is_approved boolean not null default false,
@@ -96,6 +107,8 @@ create table if not exists public.projects (
   amount numeric(12,2) default 0,
   year int,
   status text,
+  reference_url text,
+  pdf_url text,
   is_approved boolean not null default false,
   approved_by uuid references auth.users(id),
   approved_at timestamptz,
@@ -128,6 +141,8 @@ create table if not exists public.patents (
   status text,
   year int,
   number text,
+  reference_url text,
+  pdf_url text,
   is_approved boolean not null default false,
   approved_by uuid references auth.users(id),
   approved_at timestamptz,
@@ -144,6 +159,8 @@ create table if not exists public.books (
   publisher text,
   isbn text,
   year int,
+  reference_url text,
+  pdf_url text,
   is_approved boolean not null default false,
   approved_by uuid references auth.users(id),
   approved_at timestamptz,
@@ -171,10 +188,30 @@ create table if not exists public.collaborations (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.miscellaneous_items (
+  id uuid primary key default gen_random_uuid(),
+  faculty_id uuid not null references public.faculty(id) on delete cascade,
+  title text not null,
+  description text,
+  reference_url text,
+  pdf_url text,
+  custom_fields jsonb not null default '{}'::jsonb,
+  is_approved boolean not null default false,
+  approved_by uuid references auth.users(id),
+  approved_at timestamptz,
+  created_by uuid references auth.users(id),
+  updated_by uuid references auth.users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create table if not exists public.awards (
   id uuid primary key default gen_random_uuid(),
   faculty_id uuid not null references public.faculty(id) on delete cascade,
   title text not null,
+  membership text,
+  honors text,
+  contributions text,
   year int,
   description text,
   is_approved boolean not null default false,
@@ -288,6 +325,7 @@ call public.attach_triggers('collaborations');
 call public.attach_triggers('awards');
 call public.attach_triggers('moocs');
 call public.attach_triggers('research_proofs');
+call public.attach_triggers('miscellaneous_items');
 call public.attach_triggers('notifications');
 
 create index if not exists idx_faculty_is_approved on public.faculty(is_approved);
@@ -308,6 +346,7 @@ alter table public.awards enable row level security;
 alter table public.moocs enable row level security;
 alter table public.qualifications enable row level security;
 alter table public.research_proofs enable row level security;
+alter table public.miscellaneous_items enable row level security;
 alter table public.notifications enable row level security;
 
 -- Public read only approved data
@@ -346,6 +385,9 @@ create policy qualifications_public_read on public.qualifications for select usi
 
 drop policy if exists research_proofs_public_read on public.research_proofs;
 create policy research_proofs_public_read on public.research_proofs for select using (is_approved = true);
+
+drop policy if exists miscellaneous_items_public_read on public.miscellaneous_items;
+create policy miscellaneous_items_public_read on public.miscellaneous_items for select using (is_approved = true);
 
 -- Publishable-key backend mode policies.
 -- These allow backend API writes with anon key; role safety is enforced in backend JWT middleware.
@@ -387,6 +429,9 @@ create policy moocs_anon_backend_all on public.moocs for all to anon using (true
 
 drop policy if exists research_proofs_anon_backend_all on public.research_proofs;
 create policy research_proofs_anon_backend_all on public.research_proofs for all to anon using (true) with check (true);
+
+drop policy if exists miscellaneous_items_anon_backend_all on public.miscellaneous_items;
+create policy miscellaneous_items_anon_backend_all on public.miscellaneous_items for all to anon using (true) with check (true);
 
 drop policy if exists notifications_anon_backend_all on public.notifications;
 create policy notifications_anon_backend_all on public.notifications for all to anon using (true) with check (true);

@@ -8,6 +8,10 @@ const facultySchema = z.object({
   email: z.string().email(),
   phone: z.string().min(8),
   photo_url: z.string().url().optional().or(z.literal("")),
+  linkedin_url: z.string().url().optional().or(z.literal("")),
+  github_url: z.string().url().optional().or(z.literal("")),
+  google_scholar_url: z.string().url().optional().or(z.literal("")),
+  website_url: z.string().url().optional().or(z.literal("")),
   research_area: z.string().optional().default(""),
   bio: z.string().optional().default(""),
   experience_teaching: z.number().int().nonnegative().default(0),
@@ -122,6 +126,7 @@ export async function getFacultyById(req, res) {
     "awards",
     "moocs",
     "research_proofs",
+    "miscellaneous_items",
   ];
 
   const canViewPending = req.user?.role === "admin" || req.user?.id === faculty.user_id;
@@ -257,16 +262,16 @@ export async function uploadFacultyPhoto(req, res) {
     .from("faculty-photos")
     .upload(filePath, fileBuffer, { contentType, upsert: true });
 
-  if (uploadError) {
-    return res.status(500).json({ message: uploadError.message });
+  let photoUrl = dataUrl;
+  if (!uploadError) {
+    const { data: publicUrlData } = supabaseAdmin.storage.from("faculty-photos").getPublicUrl(filePath);
+    photoUrl = publicUrlData.publicUrl;
   }
-
-  const { data: publicUrlData } = supabaseAdmin.storage.from("faculty-photos").getPublicUrl(filePath);
 
   const { data: updated, error: updateError } = await supabaseAdmin
     .from("faculty")
     .update({
-      photo_url: publicUrlData.publicUrl,
+      photo_url: photoUrl,
       updated_by: req.user.id,
       is_approved: req.user.role === "admin",
     })

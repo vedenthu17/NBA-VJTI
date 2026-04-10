@@ -43,7 +43,7 @@ export async function exportFacultyExcel(req, res) {
     return res.status(404).json({ message: "Faculty profile not found" });
   }
 
-  const tables = ["publications", "fdp", "projects", "consultancy", "patents", "books", "collaborations", "awards", "moocs", "qualifications", "research_proofs"];
+  const tables = ["publications", "fdp", "projects", "consultancy", "patents", "books", "collaborations", "awards", "moocs", "qualifications", "research_proofs", "miscellaneous_items"];
 
   const workbook = XLSX.utils.book_new();
 

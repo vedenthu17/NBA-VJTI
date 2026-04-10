@@ -29,6 +29,14 @@ export default function AdminPanel({ initialTab = "pending" }) {
   const [message, setMessage] = useState("");
   const [activeTab, setActiveTab] = useState(initialTab);
   const [selectedRequest, setSelectedRequest] = useState(null);
+  const [filters, setFilters] = useState({
+    designation: "all",
+    department: "all",
+    table: "all",
+    status: "all",
+    from: "",
+    to: "",
+  });
 
   const { data: pendingData, isLoading, error } = useQuery({
     queryKey: ["pending"],
@@ -52,6 +60,16 @@ export default function AdminPanel({ initialTab = "pending" }) {
 
   const facultyMap = useMemo(() => new Map((facultyDirectory || []).map((f) => [f.id, f])), [facultyDirectory]);
 
+  const designationOptions = useMemo(
+    () => ["all", ...Array.from(new Set((facultyDirectory || []).map((f) => f.designation).filter(Boolean)))],
+    [facultyDirectory],
+  );
+
+  const departmentOptions = useMemo(
+    () => ["all", ...Array.from(new Set((facultyDirectory || []).map((f) => f.department).filter(Boolean)))],
+    [facultyDirectory],
+  );
+
   const groupedPending = useMemo(() => {
     const groups = new Map();
     for (const [table, rows] of Object.entries(pendingData || {})) {
@@ -70,6 +88,61 @@ export default function AdminPanel({ initialTab = "pending" }) {
     }
     return Array.from(groups.values()).sort((a, b) => (b.entries.length || 0) - (a.entries.length || 0));
   }, [pendingData, facultyMap]);
+
+  const filteredPendingGroups = useMemo(() => {
+    const fromDate = filters.from ? new Date(filters.from) : null;
+    const toDate = filters.to ? new Date(filters.to) : null;
+
+    return groupedPending
+      .map((group) => {
+        const f = group.faculty;
+        if (filters.designation !== "all" && f?.designation !== filters.designation) return null;
+        if (filters.department !== "all" && f?.department !== filters.department) return null;
+
+        const entries = group.entries.filter(({ table, row }) => {
+          if (filters.table !== "all" && table !== filters.table) return false;
+          if (filters.status === "approved") return false;
+          const rowDate = row?.created_at ? new Date(row.created_at) : null;
+          if (fromDate && rowDate && rowDate < fromDate) return false;
+          if (toDate && rowDate && rowDate > toDate) return false;
+          return true;
+        });
+
+        if (!entries.length) return null;
+        return { ...group, entries };
+      })
+      .filter(Boolean);
+  }, [groupedPending, filters]);
+
+  const filteredHistory = useMemo(() => {
+    const fromDate = filters.from ? new Date(filters.from) : null;
+    const toDate = filters.to ? new Date(filters.to) : null;
+    return (historyData || []).filter((item) => {
+      if (filters.designation !== "all" && item.faculty?.designation !== filters.designation) return false;
+      if (filters.department !== "all" && item.faculty?.department !== filters.department) return false;
+      if (filters.table !== "all" && item.table !== filters.table) return false;
+      if (filters.status === "pending") return false;
+      const date = item.approved_at ? new Date(item.approved_at) : null;
+      if (fromDate && date && date < fromDate) return false;
+      if (toDate && date && date > toDate) return false;
+      return true;
+    });
+  }, [historyData, filters]);
+
+  const filteredFaculty = useMemo(() => {
+    const fromDate = filters.from ? new Date(filters.from) : null;
+    const toDate = filters.to ? new Date(filters.to) : null;
+    return (facultyDirectory || []).filter((f) => {
+      if (filters.designation !== "all" && f.designation !== filters.designation) return false;
+      if (filters.department !== "all" && f.department !== filters.department) return false;
+      if (filters.status === "approved" && !f.is_approved) return false;
+      if (filters.status === "pending" && f.is_approved) return false;
+      const date = f.created_at ? new Date(f.created_at) : null;
+      if (fromDate && date && date < fromDate) return false;
+      if (toDate && date && date > toDate) return false;
+      return true;
+    });
+  }, [facultyDirectory, filters]);
 
   const approveMutation = useMutation({
     mutationFn: ({ table, id }) => adminApi.approve(table, id, token),
@@ -128,7 +201,16 @@ export default function AdminPanel({ initialTab = "pending" }) {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-3xl font-bold">Admin Approval Panel</h1>
+      <div className="rounded-2xl border border-amber-300/50 bg-gradient-to-r from-amber-50 to-white p-5 shadow-sm">
+        <h1 className="text-3xl font-black text-slate-800">Admin Request Center</h1>
+        <p className="mt-1 text-sm text-slate-600">Review requests, filter by faculty attributes and dates, and manage approvals quickly.</p>
+        <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div className="rounded bg-white p-3 shadow-sm"><p className="text-xs text-slate-500">Pending Groups</p><p className="text-2xl font-bold text-slate-800">{filteredPendingGroups.length}</p></div>
+          <div className="rounded bg-white p-3 shadow-sm"><p className="text-xs text-slate-500">Approval History</p><p className="text-2xl font-bold text-slate-800">{filteredHistory.length}</p></div>
+          <div className="rounded bg-white p-3 shadow-sm"><p className="text-xs text-slate-500">Faculty Records</p><p className="text-2xl font-bold text-slate-800">{filteredFaculty.length}</p></div>
+          <div className="rounded bg-white p-3 shadow-sm"><p className="text-xs text-slate-500">Unread Notifications</p><p className="text-2xl font-bold text-slate-800">{(pendingData?.faculty || []).length}</p></div>
+        </div>
+      </div>
       {message && <p className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-slate-700">{message}</p>}
 
       <div className="flex flex-wrap gap-2">
@@ -152,11 +234,40 @@ export default function AdminPanel({ initialTab = "pending" }) {
         </button>
       </div>
 
+      <section className="rounded-xl border border-slate-300 bg-white p-4 shadow-sm">
+        <h2 className="mb-3 text-lg font-semibold text-slate-800">Filters</h2>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-6">
+          <select className="rounded border px-3 py-2" value={filters.designation} onChange={(e) => setFilters((s) => ({ ...s, designation: e.target.value }))}>
+            {designationOptions.map((d) => <option key={d} value={d}>{d === "all" ? "All Designations" : d}</option>)}
+          </select>
+          <select className="rounded border px-3 py-2" value={filters.department} onChange={(e) => setFilters((s) => ({ ...s, department: e.target.value }))}>
+            {departmentOptions.map((d) => <option key={d} value={d}>{d === "all" ? "All Departments" : d}</option>)}
+          </select>
+          <select className="rounded border px-3 py-2" value={filters.table} onChange={(e) => setFilters((s) => ({ ...s, table: e.target.value }))}>
+            <option value="all">All Types</option>
+            <option value="faculty">Faculty</option>
+            <option value="publications">Publications</option>
+            <option value="projects">Projects</option>
+            <option value="patents">Patents</option>
+            <option value="books">Books</option>
+            <option value="awards">Awards</option>
+            <option value="miscellaneous_items">Miscellaneous</option>
+          </select>
+          <select className="rounded border px-3 py-2" value={filters.status} onChange={(e) => setFilters((s) => ({ ...s, status: e.target.value }))}>
+            <option value="all">All Status</option>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+          </select>
+          <input type="date" className="rounded border px-3 py-2" value={filters.from} onChange={(e) => setFilters((s) => ({ ...s, from: e.target.value }))} />
+          <input type="date" className="rounded border px-3 py-2" value={filters.to} onChange={(e) => setFilters((s) => ({ ...s, to: e.target.value }))} />
+        </div>
+      </section>
+
       {activeTab === "pending" && (
         <section className="space-y-4">
-          {!groupedPending.length && <p className="text-sm text-slate-500">No pending records.</p>}
+          {!filteredPendingGroups.length && <p className="text-sm text-slate-500">No pending records for selected filters.</p>}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            {groupedPending.map((group) => {
+            {filteredPendingGroups.map((group) => {
               const f = group.faculty;
               return (
                 <article key={group.facultyKey} className="glass-card rounded-xl border border-amber-300/60 bg-white/80 p-4 shadow-sm">
@@ -228,7 +339,7 @@ export default function AdminPanel({ initialTab = "pending" }) {
         <section className="rounded border border-slate-300 bg-white p-4">
           <h2 className="mb-3 text-xl font-semibold text-slate-700">Past Approvals</h2>
           <div className="space-y-2">
-            {historyData.map((item) => (
+            {filteredHistory.map((item) => (
               <div key={`${item.table}-${item.id}-${item.approved_at}`} className="rounded border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
                 <p className="font-semibold text-slate-800">{item.label}</p>
                 <p className="text-xs uppercase text-slate-500">{item.table}</p>
@@ -236,7 +347,7 @@ export default function AdminPanel({ initialTab = "pending" }) {
                 <p className="text-xs text-slate-500">Approved at: {new Date(item.approved_at).toLocaleString()}</p>
               </div>
             ))}
-            {!historyData.length && <p className="text-sm text-slate-500">No approval history found.</p>}
+            {!filteredHistory.length && <p className="text-sm text-slate-500">No approval history found for selected filters.</p>}
           </div>
         </section>
       )}
@@ -245,7 +356,7 @@ export default function AdminPanel({ initialTab = "pending" }) {
         <section className="rounded border border-slate-300 bg-white p-4">
           <h2 className="mb-3 text-xl font-semibold text-slate-700">Faculty Directory</h2>
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            {facultyDirectory.map((f) => (
+            {filteredFaculty.map((f) => (
               <div key={f.id} className="flex items-center justify-between rounded border border-slate-200 bg-slate-50 p-3">
                 <div className="flex items-center gap-3">
                   <img src={f.photo_url || "https://via.placeholder.com/60x60?text=F"} alt={f.name} className="h-12 w-12 rounded object-cover" />
@@ -263,7 +374,7 @@ export default function AdminPanel({ initialTab = "pending" }) {
                 </button>
               </div>
             ))}
-            {!facultyDirectory.length && <p className="text-sm text-slate-500">No faculty entries found.</p>}
+            {!filteredFaculty.length && <p className="text-sm text-slate-500">No faculty entries found for selected filters.</p>}
           </div>
         </section>
       )}

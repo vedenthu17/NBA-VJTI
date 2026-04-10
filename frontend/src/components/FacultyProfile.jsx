@@ -78,6 +78,7 @@ export default function FacultyProfile({
     moocs = [],
     awards = [],
     research_proofs = [],
+    miscellaneous_items = [],
   } = data;
 
   const [openForm, setOpenForm] = useState("");
@@ -92,6 +93,10 @@ export default function FacultyProfile({
     email: faculty.email || "",
     phone: faculty.phone || "",
     photo_url: faculty.photo_url || "",
+    linkedin_url: faculty.linkedin_url || "",
+    github_url: faculty.github_url || "",
+    google_scholar_url: faculty.google_scholar_url || "",
+    website_url: faculty.website_url || "",
     research_area: faculty.research_area || "",
     bio: faculty.bio || "",
     experience_teaching: faculty.experience_teaching ?? 0,
@@ -99,19 +104,22 @@ export default function FacultyProfile({
   }));
 
   const [entryForm, setEntryForm] = useState({});
+  const [miscFieldKey, setMiscFieldKey] = useState("");
+  const [miscFieldValue, setMiscFieldValue] = useState("");
 
   const sectionFormTemplates = useMemo(
     () => ({
       qualifications: { degree: "", specialization: "", institute: "", year: new Date().getFullYear() },
-      projects: { title: "", funding_agency: "", amount: 0, year: new Date().getFullYear(), status: "ongoing" },
+      projects: { title: "", funding_agency: "", amount: 0, year: new Date().getFullYear(), status: "ongoing", reference_url: "", pdf_url: "" },
       fdp: { title: "", role: "participant", duration: "", organized_by: "", start_date: "", end_date: "" },
-      publications: { title: "", authors: "", journal: "", year: new Date().getFullYear(), indexed: "", type: "journal", doi: "", scopus: false, wos: false },
-      patents: { title: "", status: "filed", year: new Date().getFullYear(), number: "" },
-      books: { title: "", publisher: "", isbn: "", year: new Date().getFullYear() },
+      publications: { title: "", authors: "", journal: "", year: new Date().getFullYear(), indexed: "", type: "journal", doi: "", reference_url: "", pdf_url: "", scopus: false, wos: false },
+      patents: { title: "", status: "filed", year: new Date().getFullYear(), number: "", reference_url: "", pdf_url: "" },
+      books: { title: "", publisher: "", isbn: "", year: new Date().getFullYear(), reference_url: "", pdf_url: "" },
       collaborations: { title: "", organization: "", country: "", role: "collaborator", start_year: new Date().getFullYear(), end_year: "" },
-      awards: { title: "", year: new Date().getFullYear(), description: "" },
+      awards: { title: "", membership: "", honors: "", contributions: "", year: new Date().getFullYear(), description: "" },
       moocs: { course: "", platform: "", grade: "", year: new Date().getFullYear() },
       research_proofs: { title: "", proof_url: "", description: "", year: new Date().getFullYear() },
+      miscellaneous_items: { title: "", description: "", reference_url: "", pdf_url: "", custom_fields: {} },
     }),
     [],
   );
@@ -126,6 +134,8 @@ export default function FacultyProfile({
     await onCreateEntry(table, entryForm);
     setOpenForm("");
     setEntryForm({});
+    setMiscFieldKey("");
+    setMiscFieldValue("");
   };
 
   const onBasicSave = async () => {
@@ -149,6 +159,52 @@ export default function FacultyProfile({
     reader.readAsDataURL(file);
   };
 
+  const handleResumeDownload = () => {
+    const lines = [
+      "NBA Faculty Resume",
+      "",
+      `Name: ${faculty.name || ""}`,
+      `Designation: ${faculty.designation || ""}`,
+      `Department: ${faculty.department || ""}`,
+      `Email: ${faculty.email || ""}`,
+      `Phone: ${faculty.phone || ""}`,
+      `LinkedIn: ${faculty.linkedin_url || ""}`,
+      `GitHub: ${faculty.github_url || ""}`,
+      `Google Scholar: ${faculty.google_scholar_url || ""}`,
+      `Website: ${faculty.website_url || ""}`,
+      "",
+      "Research Interests:",
+      faculty.research_area || "N/A",
+      "",
+      "Biosketch:",
+      faculty.bio || "N/A",
+      "",
+      "Summary Counts:",
+      `Qualifications: ${qualifications.length}`,
+      `Publications: ${publications.length}`,
+      `FDP/Teaching Engagements: ${fdp.length}`,
+      `Projects: ${projects.length}`,
+      `Patents: ${patents.length}`,
+      `Books: ${books.length}`,
+      `Collaborations: ${collaborations.length}`,
+      `Awards: ${awards.length}`,
+      `MOOCs: ${moocs.length}`,
+      `Research Proofs: ${research_proofs.length}`,
+      `Miscellaneous Items: ${miscellaneous_items.length}`,
+    ];
+
+    const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    const safeName = (faculty.name || "faculty-profile").replace(/[^a-zA-Z0-9._-]/g, "_");
+    anchor.href = url;
+    anchor.download = `${safeName}-resume.txt`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+  };
+
   const startEdit = (table, row) => {
     const key = `${table}:${row.id}`;
     if (editKey === key) {
@@ -167,6 +223,24 @@ export default function FacultyProfile({
     setEntryEdit({});
   };
 
+  const addMiscField = () => {
+    const key = miscFieldKey.trim();
+    if (!key) return;
+    setEntryForm((s) => ({
+      ...s,
+      custom_fields: {
+        ...(s.custom_fields || {}),
+        [key]: miscFieldValue,
+      },
+    }));
+    setMiscFieldKey("");
+    setMiscFieldValue("");
+  };
+
+  const honorItems = awards.filter((a) => a.honors);
+  const membershipItems = awards.filter((a) => a.membership);
+  const contributionItems = awards.filter((a) => a.contributions);
+
   return (
     <div className="space-y-8 smooth-fade">
       {message && <p className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-slate-700">{message}</p>}
@@ -184,12 +258,18 @@ export default function FacultyProfile({
             <p>{faculty.department}</p>
             <p>{faculty.email}</p>
             <p>{faculty.phone}</p>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+              {faculty.linkedin_url && <a href={faculty.linkedin_url} target="_blank" rel="noreferrer" className="underline">LinkedIn</a>}
+              {faculty.github_url && <a href={faculty.github_url} target="_blank" rel="noreferrer" className="underline">GitHub</a>}
+              {faculty.google_scholar_url && <a href={faculty.google_scholar_url} target="_blank" rel="noreferrer" className="underline">Google Scholar</a>}
+              {faculty.website_url && <a href={faculty.website_url} target="_blank" rel="noreferrer" className="underline">Website</a>}
+            </div>
             {canManage && approvalBadge(Boolean(faculty.is_approved))}
           </div>
           <div className="flex flex-col items-start gap-2 md:items-end">
-            <a href={faculty.cv_url || "#"} className="rounded border border-white/80 px-3 py-2 text-sm font-semibold" onClick={(e) => !faculty.cv_url && e.preventDefault()}>
+            <button onClick={handleResumeDownload} className="rounded border border-white/80 px-3 py-2 text-sm font-semibold">
               Download Resume
-            </a>
+            </button>
             {canManage && (
               <>
                 <button onClick={triggerPhotoPicker} className="rounded border border-white/80 px-3 py-2 text-sm font-semibold">
@@ -216,6 +296,10 @@ export default function FacultyProfile({
             <input className="rounded border px-3 py-2" value={profileForm.email} onChange={(e) => setProfileForm((s) => ({ ...s, email: e.target.value }))} placeholder="Email" />
             <input className="rounded border px-3 py-2" value={profileForm.phone} onChange={(e) => setProfileForm((s) => ({ ...s, phone: e.target.value }))} placeholder="Phone" />
             <input className="rounded border px-3 py-2" value={profileForm.photo_url} onChange={(e) => setProfileForm((s) => ({ ...s, photo_url: e.target.value }))} placeholder="Photo URL" />
+            <input className="rounded border px-3 py-2" value={profileForm.linkedin_url} onChange={(e) => setProfileForm((s) => ({ ...s, linkedin_url: e.target.value }))} placeholder="LinkedIn URL" />
+            <input className="rounded border px-3 py-2" value={profileForm.github_url} onChange={(e) => setProfileForm((s) => ({ ...s, github_url: e.target.value }))} placeholder="GitHub URL" />
+            <input className="rounded border px-3 py-2" value={profileForm.google_scholar_url} onChange={(e) => setProfileForm((s) => ({ ...s, google_scholar_url: e.target.value }))} placeholder="Google Scholar URL" />
+            <input className="rounded border px-3 py-2" value={profileForm.website_url} onChange={(e) => setProfileForm((s) => ({ ...s, website_url: e.target.value }))} placeholder="Personal Website URL" />
             <input className="rounded border px-3 py-2" type="number" value={profileForm.experience_teaching} onChange={(e) => setProfileForm((s) => ({ ...s, experience_teaching: Number(e.target.value) }))} placeholder="Teaching Experience" />
             <input className="rounded border px-3 py-2" type="number" value={profileForm.experience_industry} onChange={(e) => setProfileForm((s) => ({ ...s, experience_industry: Number(e.target.value) }))} placeholder="Industry Experience" />
             <textarea className="rounded border px-3 py-2 md:col-span-2" rows={2} value={profileForm.research_area} onChange={(e) => setProfileForm((s) => ({ ...s, research_area: e.target.value }))} placeholder="Research Interests" />
@@ -291,6 +375,8 @@ export default function FacultyProfile({
               <option value="book_chapter">Book Chapter</option>
             </select>
             <input className="rounded border px-2 py-1" placeholder="Indexed" onChange={(e) => setEntryForm((s) => ({ ...s, indexed: e.target.value }))} />
+            <input className="rounded border px-2 py-1" placeholder="Reference URL (optional)" onChange={(e) => setEntryForm((s) => ({ ...s, reference_url: e.target.value }))} />
+            <input className="rounded border px-2 py-1" placeholder="PDF URL (optional)" onChange={(e) => setEntryForm((s) => ({ ...s, pdf_url: e.target.value }))} />
             <button className="gold-button rounded px-3 py-1 text-sm font-semibold text-slate-900" onClick={() => submitEntry("publications")}>Save</button>
           </div>
         )}
@@ -325,6 +411,8 @@ export default function FacultyProfile({
               <option value="ongoing">Ongoing</option>
               <option value="completed">Completed</option>
             </select>
+            <input className="rounded border px-2 py-1" placeholder="Reference URL (optional)" onChange={(e) => setEntryForm((s) => ({ ...s, reference_url: e.target.value }))} />
+            <input className="rounded border px-2 py-1" placeholder="PDF URL (optional)" onChange={(e) => setEntryForm((s) => ({ ...s, pdf_url: e.target.value }))} />
             <button className="gold-button rounded px-3 py-1 text-sm font-semibold text-slate-900" onClick={() => submitEntry("projects")}>Save</button>
           </div>
         )}
@@ -342,6 +430,8 @@ export default function FacultyProfile({
             </select>
             <input className="rounded border px-2 py-1" type="number" placeholder="Year" onChange={(e) => setEntryForm((s) => ({ ...s, year: Number(e.target.value) }))} />
             <input className="rounded border px-2 py-1" placeholder="Patent Number" onChange={(e) => setEntryForm((s) => ({ ...s, number: e.target.value }))} />
+            <input className="rounded border px-2 py-1" placeholder="Reference URL (optional)" onChange={(e) => setEntryForm((s) => ({ ...s, reference_url: e.target.value }))} />
+            <input className="rounded border px-2 py-1" placeholder="PDF URL (optional)" onChange={(e) => setEntryForm((s) => ({ ...s, pdf_url: e.target.value }))} />
             <button className="gold-button rounded px-3 py-1 text-sm font-semibold text-slate-900" onClick={() => submitEntry("patents")}>Save</button>
           </div>
         )}
@@ -371,8 +461,14 @@ export default function FacultyProfile({
                   </select>
                   <input className={textInputClass()} type="number" value={entryEdit.year || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, year: Number(e.target.value) }))} />
                   <input className={textInputClass()} value={entryEdit.number || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, number: e.target.value }))} />
+                  <input className={textInputClass()} value={entryEdit.reference_url || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, reference_url: e.target.value }))} placeholder="Reference URL" />
+                  <input className={textInputClass()} value={entryEdit.pdf_url || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, pdf_url: e.target.value }))} placeholder="PDF URL" />
                 </div>
               )}
+              <div className="mt-2 flex flex-wrap gap-3 text-xs">
+                {p.reference_url && <a href={p.reference_url} target="_blank" rel="noreferrer" className="text-blue-700 underline">Reference Link</a>}
+                {p.pdf_url && <a href={p.pdf_url} target="_blank" rel="noreferrer" className="text-blue-700 underline">PDF Link</a>}
+              </div>
             </li>
           ))}
           {!patents.length && <li className="text-slate-500">No patent entries.</li>}
@@ -386,6 +482,8 @@ export default function FacultyProfile({
             <input className={textInputClass()} placeholder="Publisher" onChange={(e) => setEntryForm((s) => ({ ...s, publisher: e.target.value }))} />
             <input className={textInputClass()} placeholder="ISBN" onChange={(e) => setEntryForm((s) => ({ ...s, isbn: e.target.value }))} />
             <input className={textInputClass()} type="number" placeholder="Year" onChange={(e) => setEntryForm((s) => ({ ...s, year: Number(e.target.value) }))} />
+            <input className={textInputClass()} placeholder="Reference URL (optional)" onChange={(e) => setEntryForm((s) => ({ ...s, reference_url: e.target.value }))} />
+            <input className={textInputClass()} placeholder="PDF URL (optional)" onChange={(e) => setEntryForm((s) => ({ ...s, pdf_url: e.target.value }))} />
             <button className="gold-button rounded px-3 py-1 text-sm font-semibold text-slate-900" onClick={() => submitEntry("books")}>Save</button>
           </div>
         )}
@@ -411,8 +509,14 @@ export default function FacultyProfile({
                   <input className={textInputClass()} value={entryEdit.publisher || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, publisher: e.target.value }))} />
                   <input className={textInputClass()} value={entryEdit.isbn || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, isbn: e.target.value }))} />
                   <input className={textInputClass()} type="number" value={entryEdit.year || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, year: Number(e.target.value) }))} />
+                  <input className={textInputClass()} value={entryEdit.reference_url || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, reference_url: e.target.value }))} placeholder="Reference URL" />
+                  <input className={textInputClass()} value={entryEdit.pdf_url || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, pdf_url: e.target.value }))} placeholder="PDF URL" />
                 </div>
               )}
+              <div className="mt-2 flex flex-wrap gap-3 text-xs">
+                {book.reference_url && <a href={book.reference_url} target="_blank" rel="noreferrer" className="text-blue-700 underline">Reference Link</a>}
+                {book.pdf_url && <a href={book.pdf_url} target="_blank" rel="noreferrer" className="text-blue-700 underline">PDF Link</a>}
+              </div>
             </li>
           ))}
           {!books.length && <li className="text-slate-500">No book entries.</li>}
@@ -491,6 +595,108 @@ export default function FacultyProfile({
           ))}
           {!awards.length && <li className="text-slate-500">No awards entries.</li>}
         </ul>
+
+        <div id="awards-honors" className="mt-4 space-y-2 scroll-mt-24 rounded border border-slate-200 bg-slate-50 p-3">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-lg font-semibold text-slate-800">Honors</h3>
+            {canManage && <button className="rounded border border-blue-700 px-2 py-1 text-xs font-semibold text-blue-700" onClick={() => openAddForm("awards_honors")}>+ Add</button>}
+          </div>
+          {canManage && openForm === "awards_honors" && (
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+              <input className="rounded border px-2 py-1" placeholder="Title" onChange={(e) => setEntryForm((s) => ({ ...s, title: e.target.value }))} />
+              <input className="rounded border px-2 py-1" type="number" placeholder="Year" onChange={(e) => setEntryForm((s) => ({ ...s, year: Number(e.target.value) }))} />
+              <input className="rounded border px-2 py-1 md:col-span-2" placeholder="Honor" onChange={(e) => setEntryForm((s) => ({ ...s, honors: e.target.value }))} />
+              <button className="gold-button rounded px-3 py-1 text-sm font-semibold text-slate-900 md:col-span-2" onClick={() => submitEntry("awards")}>Save Honor</button>
+            </div>
+          )}
+          {honorItems.map((item) => (
+            <div key={`honor-${item.id}`} className="rounded border border-slate-200 bg-white p-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm"><span className="font-semibold">{item.title || "Honor"}</span> ({item.year || "-"}) - {item.honors}</p>
+                <div className="flex items-center gap-2">
+                  {canManage && approvalBadge(Boolean(item.is_approved))}
+                  <ItemActions canManage={canManage} isEditing={editKey === `awards:${item.id}`} onEdit={() => startEdit("awards", item)} onSave={() => saveEdit("awards", item.id)} busy={busy} />
+                </div>
+              </div>
+              {editKey === `awards:${item.id}` && (
+                <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2">
+                  <input className={textInputClass()} value={entryEdit.title || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, title: e.target.value }))} />
+                  <input className={textInputClass()} type="number" value={entryEdit.year || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, year: Number(e.target.value) }))} />
+                  <input className={`${textInputClass()} md:col-span-2`} value={entryEdit.honors || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, honors: e.target.value }))} />
+                </div>
+              )}
+            </div>
+          ))}
+          {!honorItems.length && <p className="text-sm text-slate-500">No honors added.</p>}
+        </div>
+
+        <div id="awards-membership" className="mt-4 space-y-2 scroll-mt-24 rounded border border-slate-200 bg-slate-50 p-3">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-lg font-semibold text-slate-800">Membership</h3>
+            {canManage && <button className="rounded border border-blue-700 px-2 py-1 text-xs font-semibold text-blue-700" onClick={() => openAddForm("awards_membership")}>+ Add</button>}
+          </div>
+          {canManage && openForm === "awards_membership" && (
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+              <input className="rounded border px-2 py-1" placeholder="Title" onChange={(e) => setEntryForm((s) => ({ ...s, title: e.target.value }))} />
+              <input className="rounded border px-2 py-1" type="number" placeholder="Year" onChange={(e) => setEntryForm((s) => ({ ...s, year: Number(e.target.value) }))} />
+              <input className="rounded border px-2 py-1 md:col-span-2" placeholder="Membership" onChange={(e) => setEntryForm((s) => ({ ...s, membership: e.target.value }))} />
+              <button className="gold-button rounded px-3 py-1 text-sm font-semibold text-slate-900 md:col-span-2" onClick={() => submitEntry("awards")}>Save Membership</button>
+            </div>
+          )}
+          {membershipItems.map((item) => (
+            <div key={`membership-${item.id}`} className="rounded border border-slate-200 bg-white p-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm"><span className="font-semibold">{item.title || "Membership"}</span> ({item.year || "-"}) - {item.membership}</p>
+                <div className="flex items-center gap-2">
+                  {canManage && approvalBadge(Boolean(item.is_approved))}
+                  <ItemActions canManage={canManage} isEditing={editKey === `awards:${item.id}`} onEdit={() => startEdit("awards", item)} onSave={() => saveEdit("awards", item.id)} busy={busy} />
+                </div>
+              </div>
+              {editKey === `awards:${item.id}` && (
+                <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2">
+                  <input className={textInputClass()} value={entryEdit.title || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, title: e.target.value }))} />
+                  <input className={textInputClass()} type="number" value={entryEdit.year || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, year: Number(e.target.value) }))} />
+                  <input className={`${textInputClass()} md:col-span-2`} value={entryEdit.membership || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, membership: e.target.value }))} />
+                </div>
+              )}
+            </div>
+          ))}
+          {!membershipItems.length && <p className="text-sm text-slate-500">No membership entries added.</p>}
+        </div>
+
+        <div id="awards-contributions" className="mt-4 space-y-2 scroll-mt-24 rounded border border-slate-200 bg-slate-50 p-3">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-lg font-semibold text-slate-800">Contributions</h3>
+            {canManage && <button className="rounded border border-blue-700 px-2 py-1 text-xs font-semibold text-blue-700" onClick={() => openAddForm("awards_contributions")}>+ Add</button>}
+          </div>
+          {canManage && openForm === "awards_contributions" && (
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+              <input className="rounded border px-2 py-1" placeholder="Title" onChange={(e) => setEntryForm((s) => ({ ...s, title: e.target.value }))} />
+              <input className="rounded border px-2 py-1" type="number" placeholder="Year" onChange={(e) => setEntryForm((s) => ({ ...s, year: Number(e.target.value) }))} />
+              <textarea className="rounded border px-2 py-1 md:col-span-2" rows={2} placeholder="Contributions" onChange={(e) => setEntryForm((s) => ({ ...s, contributions: e.target.value }))} />
+              <button className="gold-button rounded px-3 py-1 text-sm font-semibold text-slate-900 md:col-span-2" onClick={() => submitEntry("awards")}>Save Contribution</button>
+            </div>
+          )}
+          {contributionItems.map((item) => (
+            <div key={`contrib-${item.id}`} className="rounded border border-slate-200 bg-white p-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm"><span className="font-semibold">{item.title || "Contribution"}</span> ({item.year || "-"}) - {item.contributions}</p>
+                <div className="flex items-center gap-2">
+                  {canManage && approvalBadge(Boolean(item.is_approved))}
+                  <ItemActions canManage={canManage} isEditing={editKey === `awards:${item.id}`} onEdit={() => startEdit("awards", item)} onSave={() => saveEdit("awards", item.id)} busy={busy} />
+                </div>
+              </div>
+              {editKey === `awards:${item.id}` && (
+                <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2">
+                  <input className={textInputClass()} value={entryEdit.title || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, title: e.target.value }))} />
+                  <input className={textInputClass()} type="number" value={entryEdit.year || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, year: Number(e.target.value) }))} />
+                  <textarea className="rounded border px-2 py-1 md:col-span-2" rows={2} value={entryEdit.contributions || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, contributions: e.target.value }))} />
+                </div>
+              )}
+            </div>
+          ))}
+          {!contributionItems.length && <p className="text-sm text-slate-500">No contributions added.</p>}
+        </div>
       </Section>
 
       <Section title="MOOCs" canManage={canManage} onAddClick={() => openAddForm("moocs")}>
@@ -540,8 +746,57 @@ export default function FacultyProfile({
         </ul>
       </Section>
 
-      <Section id="misc" title="Miscellaneous" canManage={false}>
-        <p className="text-slate-600">Additional activities and records can be attached under the relevant sections.</p>
+      <Section id="misc" title="Miscellaneous" canManage={canManage} onAddClick={() => openAddForm("miscellaneous_items")}>
+        {canManage && (
+          <div className="grid grid-cols-1 gap-2 rounded border border-slate-200 bg-blue-50 p-3 md:grid-cols-2">
+            <input className={textInputClass()} placeholder="Title" onChange={(e) => setEntryForm((s) => ({ ...s, title: e.target.value }))} />
+            <input className={textInputClass()} placeholder="Reference URL (optional)" onChange={(e) => setEntryForm((s) => ({ ...s, reference_url: e.target.value }))} />
+            <textarea className="rounded border px-3 py-2 md:col-span-2" rows={2} placeholder="Description" onChange={(e) => setEntryForm((s) => ({ ...s, description: e.target.value }))} />
+            <input className={textInputClass()} placeholder="PDF URL (optional)" onChange={(e) => setEntryForm((s) => ({ ...s, pdf_url: e.target.value }))} />
+
+            <div className="md:col-span-2 rounded border border-dashed border-slate-300 p-2">
+              <p className="mb-2 text-xs font-semibold uppercase text-slate-600">Custom Fields (self-made form)</p>
+              <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_1fr_auto]">
+                <input className={textInputClass()} placeholder="Field Name" value={miscFieldKey} onChange={(e) => setMiscFieldKey(e.target.value)} />
+                <input className={textInputClass()} placeholder="Field Value" value={miscFieldValue} onChange={(e) => setMiscFieldValue(e.target.value)} />
+                <button className="rounded border border-slate-400 px-3 py-2 text-sm font-semibold text-slate-700" onClick={addMiscField}>Add Field</button>
+              </div>
+              {!!Object.keys(entryForm.custom_fields || {}).length && (
+                <div className="mt-2 grid grid-cols-1 gap-1 text-xs text-slate-700 md:grid-cols-2">
+                  {Object.entries(entryForm.custom_fields || {}).map(([k, v]) => (
+                    <div key={k} className="rounded bg-white px-2 py-1"><span className="font-semibold">{k}:</span> {String(v)}</div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button className="gold-button rounded px-3 py-1 text-sm font-semibold text-slate-900 md:col-span-2" onClick={() => submitEntry("miscellaneous_items")}>Save Miscellaneous</button>
+          </div>
+        )}
+
+        <div className="mt-3 space-y-2">
+          {miscellaneous_items.map((item) => (
+            <div key={item.id} className="rounded border border-slate-200 bg-slate-50 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-semibold text-slate-800">{item.title}</p>
+                {canManage && approvalBadge(Boolean(item.is_approved))}
+              </div>
+              <p className="text-sm text-slate-600">{item.description || "No description"}</p>
+              <div className="mt-2 flex flex-wrap gap-3 text-xs">
+                {item.reference_url && <a href={item.reference_url} target="_blank" rel="noreferrer" className="text-blue-700 underline">Reference Link</a>}
+                {item.pdf_url && <a href={item.pdf_url} target="_blank" rel="noreferrer" className="text-blue-700 underline">PDF Link</a>}
+              </div>
+              {!!Object.keys(item.custom_fields || {}).length && (
+                <div className="mt-2 grid grid-cols-1 gap-1 text-xs text-slate-700 md:grid-cols-2">
+                  {Object.entries(item.custom_fields || {}).map(([k, v]) => (
+                    <div key={k} className="rounded bg-white px-2 py-1"><span className="font-semibold">{k}:</span> {String(v)}</div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+          {!miscellaneous_items.length && <p className="text-slate-600">No miscellaneous entries yet.</p>}
+        </div>
       </Section>
       </div>
     </div>

@@ -1,6 +1,6 @@
 import { supabaseAdmin } from "../db/supabase.js";
 
-const TABLES = ["faculty", "publications", "fdp", "projects", "patents", "books", "collaborations", "consultancy", "awards", "moocs", "qualifications", "research_proofs"];
+const TABLES = ["faculty", "publications", "fdp", "projects", "patents", "books", "collaborations", "consultancy", "awards", "moocs", "qualifications", "research_proofs", "miscellaneous_items"];
 
 function rowLabel(row) {
   return row.title || row.name || row.course || row.degree || "Untitled entry";
@@ -233,4 +233,102 @@ export async function removeFacultyByAdmin(req, res) {
   }
 
   return res.status(204).send();
+}
+
+export async function queryFacultyKnowledge(req, res) {
+  const q = String(req.query.q || "").trim().toLowerCase();
+  const designation = String(req.query.designation || "").trim().toLowerCase();
+  const department = String(req.query.department || "").trim().toLowerCase();
+  const tableFilter = String(req.query.table || "all").trim().toLowerCase();
+  const statusFilter = String(req.query.status || "all").trim().toLowerCase();
+  const from = req.query.from ? new Date(String(req.query.from)) : null;
+  const to = req.query.to ? new Date(String(req.query.to)) : null;
+  const limit = Math.min(Number(req.query.limit || 300), 1000);
+
+  const { data: facultyRows, error: facultyError } = await supabaseAdmin
+    .from("faculty")
+    .select("id,name,designation,department,email,research_area,bio,is_approved,created_at");
+
+  if (facultyError) {
+    return res.status(500).json({ message: facultyError.message });
+  }
+
+  const facultyMap = new Map((facultyRows ?? []).map((f) => [f.id, f]));
+  const records = [];
+
+  for (const table of TABLES) {
+    if (tableFilter !== "all" && tableFilter !== table) continue;
+
+    if (table === "faculty") {
+      for (const f of facultyRows ?? []) {
+        records.push({
+          table: "faculty",
+          id: f.id,
+          faculty_id: f.id,
+          created_at: f.created_at,
+          is_approved: Boolean(f.is_approved),
+          label: f.name,
+          search_blob: [f.name, f.email, f.research_area, f.bio, f.department, f.designation].join(" "),
+          faculty: f,
+        });
+      }
+      continue;
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from(table)
+      .select("id,faculty_id,title,name,course,degree,description,status,membership,honors,contributions,reference_url,pdf_url,created_at,is_approved");
+
+    if (error) {
+      return res.status(500).json({ message: error.message });
+    }
+
+    for (const row of data ?? []) {
+      const faculty = facultyMap.get(row.faculty_id) || null;
+      records.push({
+        table,
+        id: row.id,
+        faculty_id: row.faculty_id,
+        created_at: row.created_at,
+        is_approved: Boolean(row.is_approved),
+        label: rowLabel(row),
+        search_blob: [
+          row.title,
+          row.name,
+          row.course,
+          row.degree,
+          row.description,
+          row.status,
+          row.membership,
+          row.honors,
+          row.contributions,
+          row.reference_url,
+          row.pdf_url,
+          faculty?.name,
+          faculty?.designation,
+          faculty?.department,
+        ].join(" "),
+        faculty,
+      });
+    }
+  }
+
+  const filtered = records.filter((item) => {
+    const faculty = item.faculty;
+    if (designation && !String(faculty?.designation || "").toLowerCase().includes(designation)) return false;
+    if (department && !String(faculty?.department || "").toLowerCase().includes(department)) return false;
+
+    if (statusFilter === "approved" && !item.is_approved) return false;
+    if (statusFilter === "pending" && item.is_approved) return false;
+
+    if (from && item.created_at && new Date(item.created_at) < from) return false;
+    if (to && item.created_at && new Date(item.created_at) > to) return false;
+
+    if (q && !String(item.search_blob || "").toLowerCase().includes(q)) return false;
+    return true;
+  });
+
+  filtered.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+
+  return res.json(filtered.slice(0, limit));
 }

@@ -25,6 +25,13 @@ export const adminApi = {
   audit: (token, limit = 100) => apiFetch(`/admin/audit?limit=${limit}`, { token }),
   history: (token, limit = 200) => apiFetch(`/admin/history?limit=${limit}`, { token }),
   faculty: (token) => apiFetch("/admin/faculty", { token }),
+  query: (token, params = {}) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && String(v).trim() !== "") query.set(k, String(v));
+    });
+    return apiFetch(`/admin/query?${query.toString()}`, { token });
+  },
   approve: (table, id, token) => apiFetch(`/admin/approve/${table}/${id}`, { method: "PUT", token }),
   reject: (table, id, token) => apiFetch(`/admin/reject/${table}/${id}`, { method: "DELETE", token }),
   removeDetail: (table, id, token) => apiFetch(`/admin/remove/${table}/${id}`, { method: "DELETE", token }),
