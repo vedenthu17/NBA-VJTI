@@ -167,21 +167,6 @@ export default function FacultyProfile({
     setEntryEdit({});
   };
 
-  const sections = [
-    { id: "research", label: "Research Interests" },
-    { id: "biosketch", label: "Biosketch" },
-    { id: "qualifications", label: "Education" },
-    { id: "publications", label: "Publications" },
-    { id: "projects", label: "Projects" },
-    { id: "patents", label: "Patents" },
-    { id: "books", label: "Books" },
-    { id: "collaborations", label: "Collaborations" },
-    { id: "fdp", label: "Teaching Engagements" },
-    { id: "awards", label: "Honours and Awards" },
-    { id: "moocs", label: "MOOCs" },
-    { id: "research-proofs", label: "Research Proofs" },
-  ];
-
   return (
     <div className="space-y-8 smooth-fade">
       {message && <p className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-slate-700">{message}</p>}
@@ -220,19 +205,7 @@ export default function FacultyProfile({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[260px_1fr]">
-        <aside className="sticky top-24 h-fit rounded border border-slate-200 bg-white/80 p-5 backdrop-blur">
-          <h3 className="mb-4 text-2xl font-bold text-slate-800">Profile Sections</h3>
-          <nav className="space-y-2">
-            {sections.map((section) => (
-              <a key={section.id} href={`#${section.id}`} className="block border-b border-slate-200 pb-2 text-xl text-slate-700 hover:text-blue-700">
-                {section.label}
-              </a>
-            ))}
-          </nav>
-        </aside>
-
-        <div className="space-y-8">
+      <div className="space-y-8">
       {canManage && openForm === "faculty" && (
         <section className="rounded border border-slate-300 bg-white p-4 shadow-sm">
           <h3 className="mb-3 text-lg font-bold text-slate-800">Update Basic Profile</h3>
@@ -570,7 +543,6 @@ export default function FacultyProfile({
       <Section id="misc" title="Miscellaneous" canManage={false}>
         <p className="text-slate-600">Additional activities and records can be attached under the relevant sections.</p>
       </Section>
-        </div>
       </div>
     </div>
   );
