@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import PublicationTable from "./PublicationTable";
 import FdpTable from "./FdpTable";
 import ProjectTable from "./ProjectTable";
+import vjtiLogo from "../assets/vjti-logo.svg";
 
 function Section({ title, id, canManage, onAddClick, addLabel = "+ Add", children }) {
   return (
@@ -93,6 +94,7 @@ export default function FacultyProfile({
     email: faculty.email || "",
     phone: faculty.phone || "",
     photo_url: faculty.photo_url || "",
+    cv_url: faculty.cv_url || "",
     linkedin_url: faculty.linkedin_url || "",
     github_url: faculty.github_url || "",
     google_scholar_url: faculty.google_scholar_url || "",
@@ -159,30 +161,84 @@ export default function FacultyProfile({
     reader.readAsDataURL(file);
   };
 
-  const handleResumeDownload = () => {
-    const lines = [
-      "NBA Faculty Resume",
-      "",
-      `Name: ${faculty.name || ""}`,
-      `Designation: ${faculty.designation || ""}`,
-      `Department: ${faculty.department || ""}`,
-      `Email: ${faculty.email || ""}`,
-      `Phone: ${faculty.phone || ""}`,
-      `LinkedIn: ${faculty.linkedin_url || ""}`,
-      `GitHub: ${faculty.github_url || ""}`,
-      `Google Scholar: ${faculty.google_scholar_url || ""}`,
-      `Website: ${faculty.website_url || ""}`,
-      "",
-      "Research Interests:",
-      faculty.research_area || "N/A",
-      "",
-      "Biosketch:",
-      faculty.bio || "N/A",
-      "",
-      "Summary Counts:",
+  const loadImageDataUrl = async (src) => {
+    const response = await fetch(src);
+    const blob = await response.blob();
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(String(reader.result || ""));
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  };
+
+  const handleResumeDownload = async () => {
+    if (faculty.cv_url) {
+      const anchor = document.createElement("a");
+      anchor.href = faculty.cv_url;
+      anchor.target = "_blank";
+      anchor.rel = "noreferrer";
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      return;
+    }
+
+    const { jsPDF } = await import("jspdf");
+    const doc = new jsPDF({ orientation: "p", unit: "pt", format: "a4" });
+
+    let y = 40;
+    try {
+      const logoDataUrl = await loadImageDataUrl(vjtiLogo);
+      doc.addImage(logoDataUrl, "PNG", 40, y - 10, 90, 90);
+    } catch {
+      // Continue PDF generation if logo data conversion fails.
+    }
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(20);
+    doc.text("VJTI NBA PORTAL", 150, y + 20);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.text("Faculty Resume", 150, y + 40);
+    y += 85;
+
+    doc.setLineWidth(0.7);
+    doc.line(40, y, 555, y);
+    y += 22;
+
+    const addLine = (label, value = "") => {
+      doc.setFont("helvetica", "bold");
+      doc.text(`${label}:`, 40, y);
+      doc.setFont("helvetica", "normal");
+      const text = value || "-";
+      const wrapped = doc.splitTextToSize(String(text), 390);
+      doc.text(wrapped, 165, y);
+      y += Math.max(18, wrapped.length * 14);
+    };
+
+    addLine("Name", faculty.name);
+    addLine("Designation", faculty.designation);
+    addLine("Department", faculty.department);
+    addLine("Email", faculty.email);
+    addLine("Phone", faculty.phone);
+    addLine("LinkedIn", faculty.linkedin_url);
+    addLine("GitHub", faculty.github_url);
+    addLine("Google Scholar", faculty.google_scholar_url);
+    addLine("Website", faculty.website_url);
+    addLine("Research Interests", faculty.research_area);
+    addLine("Biosketch", faculty.bio);
+
+    y += 8;
+    doc.setFont("helvetica", "bold");
+    doc.text("Academic Summary", 40, y);
+    y += 16;
+    doc.setFont("helvetica", "normal");
+
+    const summary = [
       `Qualifications: ${qualifications.length}`,
       `Publications: ${publications.length}`,
-      `FDP/Teaching Engagements: ${fdp.length}`,
+      `Teaching Engagements: ${fdp.length}`,
       `Projects: ${projects.length}`,
       `Patents: ${patents.length}`,
       `Books: ${books.length}`,
@@ -193,16 +249,13 @@ export default function FacultyProfile({
       `Miscellaneous Items: ${miscellaneous_items.length}`,
     ];
 
-    const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
+    summary.forEach((line) => {
+      doc.text(`- ${line}`, 45, y);
+      y += 14;
+    });
+
     const safeName = (faculty.name || "faculty-profile").replace(/[^a-zA-Z0-9._-]/g, "_");
-    anchor.href = url;
-    anchor.download = `${safeName}-resume.txt`;
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
-    URL.revokeObjectURL(url);
+    doc.save(`${safeName}-resume.pdf`);
   };
 
   const startEdit = (table, row) => {
@@ -296,6 +349,7 @@ export default function FacultyProfile({
             <input className="rounded border px-3 py-2" value={profileForm.email} onChange={(e) => setProfileForm((s) => ({ ...s, email: e.target.value }))} placeholder="Email" />
             <input className="rounded border px-3 py-2" value={profileForm.phone} onChange={(e) => setProfileForm((s) => ({ ...s, phone: e.target.value }))} placeholder="Phone" />
             <input className="rounded border px-3 py-2" value={profileForm.photo_url} onChange={(e) => setProfileForm((s) => ({ ...s, photo_url: e.target.value }))} placeholder="Photo URL" />
+            <input className="rounded border px-3 py-2" value={profileForm.cv_url} onChange={(e) => setProfileForm((s) => ({ ...s, cv_url: e.target.value }))} placeholder="Resume URL (PDF/Doc)" />
             <input className="rounded border px-3 py-2" value={profileForm.linkedin_url} onChange={(e) => setProfileForm((s) => ({ ...s, linkedin_url: e.target.value }))} placeholder="LinkedIn URL" />
             <input className="rounded border px-3 py-2" value={profileForm.github_url} onChange={(e) => setProfileForm((s) => ({ ...s, github_url: e.target.value }))} placeholder="GitHub URL" />
             <input className="rounded border px-3 py-2" value={profileForm.google_scholar_url} onChange={(e) => setProfileForm((s) => ({ ...s, google_scholar_url: e.target.value }))} placeholder="Google Scholar URL" />

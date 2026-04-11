@@ -20,6 +20,7 @@ create table if not exists public.faculty (
   email text not null,
   phone text not null,
   photo_url text,
+  cv_url text,
   linkedin_url text,
   github_url text,
   google_scholar_url text,
@@ -41,6 +42,7 @@ alter table public.faculty add column if not exists linkedin_url text;
 alter table public.faculty add column if not exists github_url text;
 alter table public.faculty add column if not exists google_scholar_url text;
 alter table public.faculty add column if not exists website_url text;
+alter table public.faculty add column if not exists cv_url text;
 
 create table if not exists public.qualifications (
   id uuid primary key default gen_random_uuid(),

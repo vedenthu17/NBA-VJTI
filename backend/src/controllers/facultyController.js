@@ -8,6 +8,7 @@ const facultySchema = z.object({
   email: z.string().email(),
   phone: z.string().min(8),
   photo_url: z.string().url().optional().or(z.literal("")),
+  cv_url: z.string().url().optional().or(z.literal("")),
   linkedin_url: z.string().url().optional().or(z.literal("")),
   github_url: z.string().url().optional().or(z.literal("")),
   google_scholar_url: z.string().url().optional().or(z.literal("")),

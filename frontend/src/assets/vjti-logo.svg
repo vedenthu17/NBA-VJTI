@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="160" viewBox="0 0 640 160" role="img" aria-labelledby="title desc">
+  <title id="title">VJTI Logo</title>
+  <desc id="desc">VJTI seal and Marathi institute title lockup</desc>
+  <rect width="640" height="160" fill="#ffffff"/>
+  <g transform="translate(10,10)">
+    <circle cx="70" cy="70" r="66" fill="#ffffff" stroke="#111827" stroke-width="4"/>
+    <circle cx="70" cy="70" r="48" fill="#f8fafc" stroke="#111827" stroke-width="3"/>
+    <text x="70" y="62" text-anchor="middle" font-size="16" font-family="Georgia, serif" font-weight="700" fill="#111827">VJTI</text>
+    <text x="70" y="84" text-anchor="middle" font-size="10" font-family="Georgia, serif" fill="#111827">ESTD 1887</text>
+  </g>
+  <g transform="translate(160,18)" fill="#111827">
+    <text x="0" y="48" font-size="48" font-weight="700" font-family="Noto Serif Devanagari, Mangal, serif">वीरमाता जिजाबाई</text>
+    <text x="0" y="102" font-size="48" font-weight="700" font-family="Noto Serif Devanagari, Mangal, serif">तंत्रज्ञान संस्था</text>
+  </g>
+</svg>

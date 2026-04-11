@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { facultyApi, notificationApi } from "../api/facultyApi";
 import { useState } from "react";
+import vjtiLogo from "../assets/vjti-logo.svg";
 
 export default function AppLayout() {
   const { isAuthenticated, role, logout, token, user } = useAuth();
@@ -49,8 +50,9 @@ export default function AppLayout() {
     <div className="min-h-screen bg-slate-100 text-slate-900">
       <header className="border-b border-amber-200 bg-white/70 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 md:px-8">
-          <Link to="/" className="text-xl font-extrabold tracking-tight text-slate-900">
-            NBA Faculty Portal
+          <Link to="/" className="flex items-center gap-3 text-xl font-extrabold tracking-tight text-slate-900">
+            <img src={vjtiLogo} alt="VJTI" className="h-10 w-auto" />
+            <span>VJTI NBA PORTAL</span>
           </Link>
           <nav className="hidden items-center gap-4 md:flex">
             {navItems.map((item) => (
