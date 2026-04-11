@@ -1,4 +1,5 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+const WS_BASE_URL = API_BASE_URL.replace(/^http/i, "ws");
 
 function buildHeaders(token, hasJson = true) {
   const headers = {};
@@ -49,4 +50,4 @@ export async function apiFetch(path, options = {}) {
   return response.blob();
 }
 
-export { API_BASE_URL };
+export { API_BASE_URL, WS_BASE_URL };

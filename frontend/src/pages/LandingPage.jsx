@@ -30,12 +30,12 @@ function AchievementMedia({ item }) {
     if (!embedUrl) return <p className="text-sm text-slate-600">Invalid YouTube URL</p>;
     return (
       <iframe
-        title={item.title}
-        src={embedUrl}
-        className="h-44 w-full rounded"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-        allowFullScreen
-      />
+  title={item.title}
+  src={embedUrl}
+  className="w-full rounded aspect-video"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+  allowFullScreen
+/>
     );
   }
 
@@ -75,125 +75,187 @@ export default function LandingPage() {
   const remaining = filteredAchievements.slice(1);
 
   return (
-    <div>
-      <section className="bg-[linear-gradient(135deg,#e6cf98_0%,#f1e2bc_52%,#fbf5e6_100%)] px-4 py-16 md:px-8">
-        <div className="mx-auto grid max-w-7xl gap-10 md:grid-cols-[1.2fr_1fr]">
-          <div className="smooth-fade glass-card rounded-2xl border border-white/40 p-6 backdrop-blur-xl">
-            <p className="mb-3 inline-flex rounded-full border border-slate-700/20 bg-white/80 px-4 py-1 text-xs font-bold uppercase tracking-[0.2em] text-slate-800">
-              NBA Accreditation Portal
-            </p>
-            <h1 className="text-4xl font-black leading-tight text-slate-900 md:text-6xl">
-              Faculty Information System for NBA Compliance
-            </h1>
-            <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-800">
-              Centralized faculty profiles, publication tracking, project documentation, admin approval workflow, report generation,
-              and accreditation-ready exports in one platform.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link to="/faculty" className="rounded bg-slate-900 px-6 py-3 font-semibold text-white hover:bg-slate-800">
-                Browse Faculty
-              </Link>
-              <Link to="/viewer" className="rounded border border-slate-900 px-6 py-3 font-semibold text-slate-900 hover:bg-white/70">
-                Viewer Mode
-              </Link>
-              <Link to="/login" className="rounded border border-slate-900 px-6 py-3 font-semibold text-slate-900 hover:bg-white/70">
-                Login
-              </Link>
-            </div>
-          </div>
-          <div className="glass-card floaty rounded-lg border border-white/50 bg-white/70 p-6 backdrop-blur-xl">
-            <h2 className="text-2xl font-extrabold text-slate-900">System Highlights</h2>
-            <ul className="mt-4 space-y-3 text-slate-700">
-              <li>Role-based access for Faculty, Admin, and Viewer</li>
-              <li>Admin approval gates for every faculty update</li>
-              <li>Data history through audit logs</li>
-              <li>NBA parameter dashboards and summary reports</li>
-              <li>Excel export and CV-ready profile compilation</li>
-            </ul>
-          </div>
-        </div>
-      </section>
+  <div className="bg-gradient-to-br from-[#fdfaf3] via-[#f5ecd7] to-[#efe3c2] min-h-screen">
 
-      <section className="px-4 py-14 md:px-8">
-        <div className="mx-auto max-w-7xl">
-          <div className="mb-6 flex items-end justify-between gap-3">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-700">Public Showcase</p>
-              <h2 className="text-3xl font-black text-slate-900 md:text-4xl">Latest Faculty Achievements</h2>
-              <p className="mt-2 text-sm text-slate-600">Curated by admin and visible to everyone on the portal.</p>
-            </div>
-            <Link to="/faculty" className="liquid-control rounded-xl px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100">
-              Explore Faculty
+    {/* HERO */}
+    <section className="px-4 py-16 md:px-10">
+      <div className="mx-auto grid max-w-7xl gap-10 md:grid-cols-[1.2fr_1fr] items-center">
+
+        {/* LEFT */}
+        <div className="rounded-3xl bg-white/60 backdrop-blur-xl shadow-xl p-8 border border-white/40">
+          <p className="mb-3 inline-block rounded-full bg-amber-100 px-4 py-1 text-xs font-bold uppercase tracking-widest text-amber-800">
+            NBA Accreditation Portal
+          </p>
+
+          <h1 className="text-4xl md:text-6xl font-extrabold text-slate-900 leading-tight">
+            Faculty Information 
+          </h1>
+
+          <p className="mt-5 text-lg text-slate-700 leading-relaxed">
+            Manage faculty profiles, publications, projects, approvals, and generate NBA-ready reports —
+            all in one unified system.
+          </p>
+
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link to="/faculty" className="rounded-xl bg-slate-900 px-6 py-3 text-white font-semibold shadow hover:scale-105 transition">
+              Browse Faculty
+            </Link>
+
+            <Link to="/viewer" className="rounded-xl border border-slate-900 px-6 py-3 font-semibold text-slate-900 hover:bg-slate-100 transition">
+              Viewer Mode
+            </Link>
+
+            <Link to="/login" className="rounded-xl border border-slate-900 px-6 py-3 font-semibold text-slate-900 hover:bg-slate-100 transition">
+              Login
             </Link>
           </div>
+        </div>
 
-          <div className="mb-5 flex flex-wrap gap-2">
-            {[
-              ["all", "All"],
-              ["image", "Images"],
-              ["youtube", "YouTube"],
-              ["pdf", "PDF"],
-              ["link", "Links"],
-            ].map(([value, label]) => (
-              <button
-                key={value}
-                className={filter === value ? "liquid-button rounded-xl px-3 py-2 text-xs font-semibold" : "liquid-control rounded-xl px-3 py-2 text-xs font-semibold text-slate-700"}
-                onClick={() => setFilter(value)}
-                type="button"
-              >
-                {label}
-              </button>
-            ))}
+        {/* RIGHT */}
+        <div className="rounded-3xl bg-white/70 backdrop-blur-xl shadow-lg p-6 border border-white/40">
+          <h2 className="text-2xl font-bold text-slate-900 mb-4">System Highlights</h2>
+          <ul className="space-y-3 text-slate-700 text-sm">
+            <li>✔ Role-based access (Faculty/Admin/Viewer)</li>
+            <li>✔ Admin approval workflow</li>
+            <li>✔ Audit logs & data history</li>
+            <li>✔ NBA dashboards & reports</li>
+            <li>✔ Excel export & CV generation</li>
+          </ul>
+        </div>
+
+      </div>
+    </section>
+
+    {/* SHOWCASE */}
+    <section className="px-4 py-14 md:px-10">
+      <div className="mx-auto max-w-7xl">
+
+        {/* HEADER */}
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-amber-700">
+              Public Showcase
+            </p>
+            <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900">
+              Faculty Achievements
+            </h2>
+            <p className="text-sm text-slate-600 mt-1">
+              Verified and published by administration
+            </p>
           </div>
 
-          {!filteredAchievements.length && (
-            <div className="liquid-panel rounded-2xl p-6 text-sm text-slate-500">
-              No achievements published yet.
-            </div>
-          )}
+          <Link
+            to="/faculty"
+            className="rounded-xl px-4 py-2 text-sm font-semibold border border-slate-900 hover:bg-slate-900 hover:text-white transition"
+          >
+            Explore Faculty
+          </Link>
+        </div>
 
-          {!!filteredAchievements.length && (
-            <div className="space-y-5">
-              {featured && (
-                <article className="liquid-panel overflow-hidden rounded-2xl p-5">
-                  <div className="grid gap-4 md:grid-cols-[1.1fr_1fr]">
+        {/* FILTERS */}
+        <div className="mb-6 flex flex-wrap gap-2">
+          {[
+            ["all", "All"],
+            ["image", "Images"],
+            ["youtube", "YouTube"],
+            ["pdf", "PDF"],
+            ["link", "Links"],
+          ].map(([value, label]) => (
+            <button
+              key={value}
+              onClick={() => setFilter(value)}
+              className={`px-4 py-2 rounded-full text-xs font-semibold transition ${
+                filter === value
+                  ? "bg-slate-900 text-white shadow"
+                  : "bg-white border border-slate-300 text-slate-700 hover:bg-slate-100"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* EMPTY */}
+        {!filteredAchievements.length && (
+          <div className="rounded-xl bg-white p-6 text-center text-slate-500 shadow">
+            No achievements published yet.
+          </div>
+        )}
+
+        {/* CONTENT */}
+        {!!filteredAchievements.length && (
+          <div className="space-y-6">
+
+            {/* FEATURED */}
+            {featured && (
+              <div className="rounded-3xl bg-white shadow-lg p-6 hover:shadow-xl transition">
+                <div className="grid md:grid-cols-[1.1fr_1fr] gap-6 items-center">
+
+                  <div className="overflow-hidden rounded-xl">
                     <AchievementMedia item={featured} />
-                    <div className="space-y-3">
-                      <p className="liquid-chip inline-flex rounded-full px-3 py-1 text-xs font-bold uppercase tracking-[0.16em]">Featured</p>
-                      <h3 className="text-2xl font-black text-slate-900">{featured.title}</h3>
-                      <p className="text-sm text-slate-700">{featured.summary || "No summary provided."}</p>
-                      {featured.faculty?.name && (
-                        <p className="text-xs font-semibold uppercase tracking-wide text-amber-800">
-                          {featured.faculty.name}
+                  </div>
+
+                  <div>
+                    <span className="inline-block text-xs font-bold text-amber-700 mb-2">
+                      FEATURED
+                    </span>
+
+                    <h3 className="text-2xl font-bold text-slate-900">
+                      {featured.title}
+                    </h3>
+
+                    <p className="text-sm text-slate-600 mt-2">
+                      {featured.summary || "No summary provided."}
+                    </p>
+
+                    {featured.faculty?.name && (
+                      <p className="mt-3 text-xs font-semibold text-amber-800 uppercase tracking-wide">
+                        {featured.faculty.name}
+                      </p>
+                    )}
+                  </div>
+
+                </div>
+              </div>
+            )}
+
+            {/* GRID */}
+            {!!remaining.length && (
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {remaining.map((item) => (
+                  <div
+                    key={item.id}
+                    className="rounded-2xl bg-white shadow-md hover:shadow-xl transition transform hover:-translate-y-1 p-4"
+                  >
+                    <div className="overflow-hidden rounded-lg">
+                      <AchievementMedia item={item} />
+                    </div>
+
+                    <div className="mt-3">
+                      <h3 className="text-lg font-bold text-slate-900">
+                        {item.title}
+                      </h3>
+
+                      <p className="text-sm text-slate-600 mt-1">
+                        {item.summary || "No summary provided."}
+                      </p>
+
+                      {item.faculty?.name && (
+                        <p className="text-xs text-amber-700 font-semibold mt-2 uppercase">
+                          {item.faculty.name}
                         </p>
                       )}
                     </div>
                   </div>
-                </article>
-              )}
+                ))}
+              </div>
+            )}
 
-              {!!remaining.length && (
-                <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-                  {remaining.map((item) => (
-                    <article key={item.id} className="liquid-panel overflow-hidden rounded-xl p-4">
-                      <AchievementMedia item={item} />
-                      <div className="mt-3 space-y-2">
-                        <h3 className="text-lg font-bold text-slate-900">{item.title}</h3>
-                        <p className="text-sm text-slate-600">{item.summary || "No summary provided."}</p>
-                        {item.faculty?.name && (
-                          <p className="text-xs font-semibold uppercase tracking-wide text-amber-800">
-                            {item.faculty.name}
-                          </p>
-                        )}
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </section>
-    </div>
-  );
+          </div>
+        )}
+
+      </div>
+    </section>
+  </div>
+);
 }

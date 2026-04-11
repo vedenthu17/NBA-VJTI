@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "../db/supabase.js";
+import { emitToUser } from "../realtime/wsHub.js";
 
 const TABLES = ["faculty", "publications", "fdp", "projects", "patents", "books", "collaborations", "consultancy", "awards", "moocs", "qualifications", "research_proofs", "miscellaneous_items"];
 
@@ -7,24 +8,72 @@ function rowLabel(row) {
 }
 
 async function resolveRecipientUserId(table, record) {
+  if (!record) {
+    return null;
+  }
+
   if (table === "faculty") {
-    return record.user_id ?? null;
+    if (record.user_id) {
+      return record.user_id;
+    }
+
+    if (record.email) {
+      const { data: userRow } = await supabaseAdmin
+        .from("users")
+        .select("auth_user_id")
+        .eq("email", record.email)
+        .maybeSingle();
+      return userRow?.auth_user_id ?? null;
+    }
+
+    return null;
   }
 
   if (!record.faculty_id) return null;
 
-  const { data } = await supabaseAdmin.from("faculty").select("user_id").eq("id", record.faculty_id).maybeSingle();
-  return data?.user_id ?? null;
+  const { data } = await supabaseAdmin.from("faculty").select("user_id,email").eq("id", record.faculty_id).maybeSingle();
+  if (data?.user_id) {
+    return data.user_id;
+  }
+
+  if (data?.email) {
+    const { data: userRow } = await supabaseAdmin
+      .from("users")
+      .select("auth_user_id")
+      .eq("email", data.email)
+      .maybeSingle();
+    return userRow?.auth_user_id ?? null;
+  }
+
+  return null;
 }
 
 async function createNotification(recipientUserId, title, message) {
   if (!recipientUserId) return;
-  await supabaseAdmin.from("notifications").insert({
-    recipient_user_id: recipientUserId,
-    title,
-    message,
-    is_read: false,
-  });
+  const { data, error } = await supabaseAdmin
+    .from("notifications")
+    .insert({
+      recipient_user_id: recipientUserId,
+      title,
+      message,
+      is_read: false,
+    })
+    .select("*")
+    .single();
+
+  if (error || !data) {
+    emitToUser(recipientUserId, "notification.created", {
+      id: `ws-${Date.now()}`,
+      recipient_user_id: recipientUserId,
+      title,
+      message,
+      is_read: false,
+      created_at: new Date().toISOString(),
+    });
+    return;
+  }
+
+  emitToUser(recipientUserId, "notification.created", data);
 }
 
 async function restorePreviousApprovedSnapshot(table, id, adminUserId) {

@@ -2,13 +2,17 @@ import { Link, NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { facultyApi, notificationApi } from "../api/facultyApi";
-import { useState } from "react";
-import vjtiLogo from "../assets/vjti-logo.svg";
+import { useState, useEffect, useRef } from "react";
+import RotatingLogo from "../components/RotatingLogo";
+import Toast from "../components/Toast";
+import { WS_BASE_URL } from "../api/client";
 
 export default function AppLayout() {
   const { isAuthenticated, role, logout, token, user } = useAuth();
   const [openNotifications, setOpenNotifications] = useState(false);
   const [openProfileMenu, setOpenProfileMenu] = useState(false);
+  const [toasts, setToasts] = useState([]);
+  const previousNotificationsRef = useRef(null);
   const queryClient = useQueryClient();
 
   const navItems = [
@@ -44,14 +48,90 @@ export default function AppLayout() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
   });
 
+  // Show toast for new notifications
+  useEffect(() => {
+    if (previousNotificationsRef.current === null) {
+      previousNotificationsRef.current = notifications;
+      return;
+    }
+
+    const newNotifications = notifications.filter(
+      (n) => !previousNotificationsRef.current.find((prev) => prev.id === n.id)
+    );
+
+    newNotifications.forEach((notification) => {
+      const toastId = Math.random();
+      setToasts((prev) => [
+        ...prev,
+        {
+          id: toastId,
+          title: notification.title,
+          message: notification.message,
+        },
+      ]);
+    });
+
+    previousNotificationsRef.current = notifications;
+  }, [notifications]);
+
+  const removeToast = (id) => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id));
+  };
+
+  useEffect(() => {
+    if (!isAuthenticated || !token) {
+      return undefined;
+    }
+
+    const wsUrl = `${WS_BASE_URL}/ws?token=${encodeURIComponent(token)}`;
+    const ws = new WebSocket(wsUrl);
+
+    ws.onmessage = (event) => {
+      try {
+        const packet = JSON.parse(event.data);
+        if (packet?.event !== "notification.created" || !packet?.payload?.id) {
+          return;
+        }
+
+        const incoming = packet.payload;
+        queryClient.setQueryData(["notifications"], (current = []) => {
+          if (current.some((item) => item.id === incoming.id)) {
+            return current;
+          }
+          return [incoming, ...current];
+        });
+      } catch {
+        // Ignore malformed websocket payloads.
+      }
+    };
+
+    return () => {
+      ws.close();
+    };
+  }, [isAuthenticated, token, queryClient]);
+
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   return (
     <div className="liquid-skin min-h-screen text-slate-900">
+      {toasts.map((toast) => (
+        <Toast
+          key={toast.id}
+          id={toast.id}
+          title={toast.title}
+          message={toast.message}
+          onClose={removeToast}
+          duration={5000}
+        />
+      ))}
       <header className="border-b border-amber-200/60 liquid-glass">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 md:px-8">
-          <Link to="/" className="flex items-center gap-3 text-xl font-extrabold tracking-tight text-slate-900">
-            <img src={vjtiLogo} alt="VJTI" className="h-10 w-auto" />
+          <Link
+            to="/"
+            className="flex items-center gap-3 text-xl font-extrabold tracking-tight text-slate-900"
+            style={{ transform: "translateX(-28px)" }}
+          >
+            <RotatingLogo />
             <span>VJTI NBA PORTAL</span>
           </Link>
           <nav className="hidden items-center gap-4 md:flex">
