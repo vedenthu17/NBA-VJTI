@@ -43,7 +43,7 @@ export async function listFaculty(req, res) {
 
   const selectCols = "id,name,designation,department,email,phone,photo_url,research_area,bio,experience_teaching,experience_industry,is_approved,user_id";
 
-  if (includeAll) {
+  if (includeAll || req.user?.role === "viewer" || !req.user) {
     const { data, error } = await supabaseAdmin.from("faculty").select(selectCols).order("name", { ascending: true });
     if (error) {
       return res.status(500).json({ message: error.message });
@@ -85,27 +85,7 @@ export async function listFaculty(req, res) {
 export async function getFacultyById(req, res) {
   const { id } = req.params;
 
-  let facultyQuery = supabaseAdmin.from("faculty").select("*").eq("id", id).maybeSingle();
-
-  if (!(req.user?.role === "admin")) {
-    facultyQuery = supabaseAdmin
-      .from("faculty")
-      .select("*")
-      .eq("id", id)
-      .eq("is_approved", true)
-      .maybeSingle();
-  }
-
-  let { data: faculty, error } = await facultyQuery;
-
-  if (!faculty && req.user) {
-    const canView = await canReadUnapproved(req, id);
-    if (canView) {
-      const fallback = await supabaseAdmin.from("faculty").select("*").eq("id", id).maybeSingle();
-      faculty = fallback.data;
-      error = fallback.error;
-    }
-  }
+  const { data: faculty, error } = await supabaseAdmin.from("faculty").select("*").eq("id", id).maybeSingle();
 
   if (error) {
     return res.status(500).json({ message: error.message });

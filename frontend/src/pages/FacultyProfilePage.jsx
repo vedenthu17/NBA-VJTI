@@ -22,6 +22,29 @@ function normalizeEntryPayload(body = {}) {
       payload[key] = normalizeUrl(payload[key]);
     }
   }
+
+  const intKeys = ["year", "start_year", "end_year"];
+  for (const key of intKeys) {
+    if (key in payload) {
+      const raw = payload[key];
+      if (raw === "" || raw === null || raw === undefined) {
+        delete payload[key];
+        continue;
+      }
+      const parsed = Number(raw);
+      if (Number.isFinite(parsed)) {
+        payload[key] = Math.trunc(parsed);
+      } else {
+        delete payload[key];
+      }
+    }
+  }
+
+  if ("amount" in payload) {
+    const parsed = Number(payload.amount);
+    payload.amount = Number.isFinite(parsed) ? parsed : 0;
+  }
+
   return payload;
 }
 
@@ -81,17 +104,26 @@ export default function FacultyProfilePage() {
   });
 
   const handleCreateEntry = async (table, body) => {
-    if (!canManage) return;
+    if (!canManage) {
+      setMessage("You do not have permission to edit this profile. Please login with the correct faculty/admin account.");
+      return;
+    }
     await createEntry.mutateAsync({ table, body });
   };
 
   const handleUpdateFaculty = async (body) => {
-    if (!canManage) return;
+    if (!canManage) {
+      setMessage("You do not have permission to edit this profile. Please login with the correct faculty/admin account.");
+      return;
+    }
     await updateFaculty.mutateAsync(body);
   };
 
   const handleUpdateEntry = async (table, rowId, body) => {
-    if (!canManage) return;
+    if (!canManage) {
+      setMessage("You do not have permission to edit this profile. Please login with the correct faculty/admin account.");
+      return;
+    }
     await updateEntry.mutateAsync({ table, rowId, body });
   };
 

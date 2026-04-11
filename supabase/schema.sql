@@ -83,6 +83,9 @@ create table if not exists public.publications (
   updated_at timestamptz not null default now()
 );
 
+alter table public.publications add column if not exists reference_url text;
+alter table public.publications add column if not exists pdf_url text;
+
 create table if not exists public.fdp (
   id uuid primary key default gen_random_uuid(),
   faculty_id uuid not null references public.faculty(id) on delete cascade,
@@ -120,6 +123,9 @@ create table if not exists public.projects (
   updated_at timestamptz not null default now()
 );
 
+alter table public.projects add column if not exists reference_url text;
+alter table public.projects add column if not exists pdf_url text;
+
 create table if not exists public.consultancy (
   id uuid primary key default gen_random_uuid(),
   faculty_id uuid not null references public.faculty(id) on delete cascade,
@@ -154,6 +160,9 @@ create table if not exists public.patents (
   updated_at timestamptz not null default now()
 );
 
+alter table public.patents add column if not exists reference_url text;
+alter table public.patents add column if not exists pdf_url text;
+
 create table if not exists public.books (
   id uuid primary key default gen_random_uuid(),
   faculty_id uuid not null references public.faculty(id) on delete cascade,
@@ -171,6 +180,9 @@ create table if not exists public.books (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.books add column if not exists reference_url text;
+alter table public.books add column if not exists pdf_url text;
 
 create table if not exists public.collaborations (
   id uuid primary key default gen_random_uuid(),
@@ -207,6 +219,11 @@ create table if not exists public.miscellaneous_items (
   updated_at timestamptz not null default now()
 );
 
+alter table public.miscellaneous_items add column if not exists description text;
+alter table public.miscellaneous_items add column if not exists reference_url text;
+alter table public.miscellaneous_items add column if not exists pdf_url text;
+alter table public.miscellaneous_items add column if not exists custom_fields jsonb not null default '{}'::jsonb;
+
 create table if not exists public.awards (
   id uuid primary key default gen_random_uuid(),
   faculty_id uuid not null references public.faculty(id) on delete cascade,
@@ -224,6 +241,11 @@ create table if not exists public.awards (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.awards add column if not exists membership text;
+alter table public.awards add column if not exists honors text;
+alter table public.awards add column if not exists contributions text;
+alter table public.awards add column if not exists description text;
 
 create table if not exists public.moocs (
   id uuid primary key default gen_random_uuid(),

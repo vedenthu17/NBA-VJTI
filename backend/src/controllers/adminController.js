@@ -27,6 +27,42 @@ async function createNotification(recipientUserId, title, message) {
   });
 }
 
+async function restorePreviousApprovedSnapshot(table, id, adminUserId) {
+  const { data: auditRows, error: auditError } = await supabaseAdmin
+    .from("audit_log")
+    .select("old_data,new_data,created_at")
+    .eq("table_name", table)
+    .eq("row_id", id)
+    .eq("action", "UPDATE")
+    .order("created_at", { ascending: false })
+    .limit(10);
+
+  if (auditError || !auditRows?.length) {
+    return false;
+  }
+
+  const snapshot = auditRows.find((row) => row?.old_data?.is_approved === true && row?.new_data?.is_approved === false);
+  if (!snapshot?.old_data) {
+    return false;
+  }
+
+  const payload = { ...snapshot.old_data };
+  delete payload.id;
+  delete payload.created_at;
+  delete payload.updated_at;
+
+  const { error: restoreError } = await supabaseAdmin
+    .from(table)
+    .update({
+      ...payload,
+      is_approved: true,
+      updated_by: adminUserId,
+    })
+    .eq("id", id);
+
+  return !restoreError;
+}
+
 export async function getPendingEntries(_req, res) {
   const result = {};
 
@@ -87,6 +123,17 @@ export async function rejectEntry(req, res) {
   }
 
   const { data: beforeRecord } = await supabaseAdmin.from(table).select("*").eq("id", id).maybeSingle();
+
+  const restored = await restorePreviousApprovedSnapshot(table, id, req.user.id);
+  if (restored) {
+    const recipientUserId = await resolveRecipientUserId(table, beforeRecord);
+    await createNotification(
+      recipientUserId,
+      "Update Rejected",
+      `Your ${table} update was rejected by admin. The previously approved record is still visible.`,
+    );
+    return res.json({ message: "Rejected and reverted to previously approved data" });
+  }
 
   const { error } = await supabaseAdmin.from(table).delete().eq("id", id);
   if (error) {
