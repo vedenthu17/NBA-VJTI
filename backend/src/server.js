@@ -5,7 +5,7 @@ import { initWebSocket } from "./realtime/wsHub.js";
 
 dotenv.config();
 
-const port = Number(process.env.API_PORT || process.env.PORT || 5001);
+const port = Number(process.env.API_PORT || process.env.PORT || 4000);
 const server = http.createServer(app);
 initWebSocket(server);
 
