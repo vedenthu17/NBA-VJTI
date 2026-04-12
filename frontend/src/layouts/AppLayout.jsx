@@ -6,6 +6,12 @@ import { useState, useEffect, useRef } from "react";
 import RotatingLogo from "../components/RotatingLogo";
 import Toast from "../components/Toast";
 import { WS_BASE_URL } from "../api/client";
+import {
+  getStoredNotifications,
+  mergeStoredNotifications,
+  markAllStoredNotificationsRead,
+  markStoredNotificationRead,
+} from "../utils/notificationStore";
 
 export default function AppLayout() {
   const { isAuthenticated, role, logout, token, user } = useAuth();
@@ -13,8 +19,10 @@ export default function AppLayout() {
   const [openProfileMenu, setOpenProfileMenu] = useState(false);
   const [notificationFilter, setNotificationFilter] = useState("all");
   const [toasts, setToasts] = useState([]);
+  const [cachedNotifications, setCachedNotifications] = useState([]);
   const previousNotificationsRef = useRef(null);
   const queryClient = useQueryClient();
+  const storageUserId = user?.id || "";
 
   const navItems = [
     { label: "Home", to: "/" },
@@ -50,16 +58,43 @@ export default function AppLayout() {
     refetchInterval: 10000,
   });
 
-  const notifications = Array.isArray(notificationsData) ? notificationsData : [];
+  const notificationsFromApi = Array.isArray(notificationsData) ? notificationsData : [];
+  const notifications = (() => {
+    const merged = [...notificationsFromApi, ...cachedNotifications];
+    const map = new Map();
+    for (const item of merged) {
+      map.set(item.id, item);
+    }
+    return Array.from(map.values()).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  })();
+
+  useEffect(() => {
+    if (!storageUserId) return;
+    setCachedNotifications(getStoredNotifications(storageUserId));
+  }, [storageUserId]);
+
+  useEffect(() => {
+    if (!storageUserId || !notificationsFromApi.length) return;
+    const merged = mergeStoredNotifications(storageUserId, notificationsFromApi);
+    setCachedNotifications(merged);
+  }, [storageUserId, notificationsFromApi]);
 
   const markRead = useMutation({
     mutationFn: (id) => notificationApi.markRead(id, token),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+    onSuccess: (_data, id) => {
+      markStoredNotificationRead(storageUserId, id);
+      setCachedNotifications(getStoredNotifications(storageUserId));
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
   });
 
   const markAllRead = useMutation({
     mutationFn: () => notificationApi.markAllRead(token),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+    onSuccess: () => {
+      markAllStoredNotificationsRead(storageUserId);
+      setCachedNotifications(getStoredNotifications(storageUserId));
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
   });
 
   // Show toast for new notifications
@@ -108,6 +143,10 @@ export default function AppLayout() {
         }
 
         const incoming = packet.payload;
+        if (storageUserId) {
+          const merged = mergeStoredNotifications(storageUserId, [incoming]);
+          setCachedNotifications(merged);
+        }
         queryClient.setQueryData(["notifications"], (current = []) => {
           if (current.some((item) => item.id === incoming.id)) {
             return current;
@@ -122,7 +161,7 @@ export default function AppLayout() {
     return () => {
       ws.close();
     };
-  }, [isAuthenticated, token, queryClient]);
+  }, [isAuthenticated, token, queryClient, storageUserId]);
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 

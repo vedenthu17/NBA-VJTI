@@ -14,6 +14,13 @@ import achievementRoutes from "./routes/achievementRoutes.js";
 
 const app = express();
 
+app.disable("etag");
+
+app.use((_req, res, next) => {
+  res.set("Cache-Control", "no-store");
+  next();
+});
+
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 app.use(morgan("dev"));
