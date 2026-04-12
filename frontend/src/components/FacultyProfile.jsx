@@ -65,7 +65,7 @@ export default function FacultyProfile({
   onUpdateFaculty,
   onUploadPhoto,
   message = "",
-  rejectionRemarks = [],
+  requestUpdates = [],
   busy = false,
 }) {
   const {
@@ -84,6 +84,7 @@ export default function FacultyProfile({
   } = data;
 
   const [openForm, setOpenForm] = useState("");
+  const [updatesTab, setUpdatesTab] = useState("all");
   const [editKey, setEditKey] = useState("");
   const [entryEdit, setEntryEdit] = useState({});
   const fileInputRef = useRef(null);
@@ -294,25 +295,16 @@ export default function FacultyProfile({
   const honorItems = awards.filter((a) => a.honors);
   const membershipItems = awards.filter((a) => a.membership);
   const contributionItems = awards.filter((a) => a.contributions);
+  const filteredUpdates = requestUpdates.filter((item) => {
+    if (updatesTab === "all") return true;
+    if (updatesTab === "rejected") return item.status === "rejected";
+    if (updatesTab === "approved") return item.status === "approved";
+    return true;
+  });
 
   return (
     <div className="space-y-8 smooth-fade">
       {message && <p className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-slate-700">{message}</p>}
-
-      {canManage && rejectionRemarks.length > 0 && (
-        <section className="rounded border border-rose-300 bg-rose-50 px-4 py-3 text-slate-800">
-          <h2 className="text-sm font-bold uppercase tracking-wide text-rose-700">Rejected Remarks</h2>
-          <div className="mt-2 space-y-2">
-            {rejectionRemarks.slice(0, 8).map((item) => (
-              <div key={item.id} className="rounded border border-rose-200 bg-white px-3 py-2">
-                <p className="text-xs font-semibold text-rose-700">{item.title}</p>
-                <p className="text-sm text-slate-700">{item.remark}</p>
-                {item.createdAt && <p className="mt-1 text-xs text-slate-500">{new Date(item.createdAt).toLocaleString()}</p>}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
 
       <div className="rounded-lg bg-gradient-to-r from-blue-600 to-blue-500 p-6 text-white shadow-xl">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-[220px_1fr_auto]">
@@ -353,6 +345,64 @@ export default function FacultyProfile({
           </div>
         </div>
       </div>
+
+      {canManage && (
+        <section className="rounded border border-slate-300 bg-white px-4 py-3 text-slate-800">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-sm font-bold uppercase tracking-wide text-slate-700">Request Updates</h2>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setUpdatesTab("all")}
+                className={`rounded px-2 py-1 text-xs font-semibold ${updatesTab === "all" ? "bg-slate-800 text-white" : "border border-slate-300 bg-white text-slate-700"}`}
+              >
+                All
+              </button>
+              <button
+                type="button"
+                onClick={() => setUpdatesTab("rejected")}
+                className={`rounded px-2 py-1 text-xs font-semibold ${updatesTab === "rejected" ? "bg-rose-700 text-white" : "border border-slate-300 bg-white text-slate-700"}`}
+              >
+                Rejected
+              </button>
+              <button
+                type="button"
+                onClick={() => setUpdatesTab("approved")}
+                className={`rounded px-2 py-1 text-xs font-semibold ${updatesTab === "approved" ? "bg-emerald-700 text-white" : "border border-slate-300 bg-white text-slate-700"}`}
+              >
+                Approved
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-3 max-h-64 space-y-2 overflow-auto">
+            {filteredUpdates.slice(0, 30).map((item) => (
+              <div
+                key={item.id}
+                className={`rounded border px-3 py-2 ${
+                  item.status === "rejected"
+                    ? "border-rose-200 bg-rose-50"
+                    : item.status === "approved"
+                      ? "border-emerald-200 bg-emerald-50"
+                      : "border-slate-200 bg-slate-50"
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-slate-800">{item.title}</p>
+                  {!item.isRead && <span className="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">Unread</span>}
+                </div>
+                {item.remark ? (
+                  <p className="mt-1 text-sm text-slate-700">Remark: {item.remark}</p>
+                ) : (
+                  <p className="mt-1 text-sm text-slate-700">{item.message}</p>
+                )}
+                {item.createdAt && <p className="mt-1 text-xs text-slate-500">{new Date(item.createdAt).toLocaleString()}</p>}
+              </div>
+            ))}
+            {!filteredUpdates.length && <p className="text-sm text-slate-500">No updates in this tab yet.</p>}
+          </div>
+        </section>
+      )}
 
       <div className="space-y-8">
       {canManage && openForm === "faculty" && (

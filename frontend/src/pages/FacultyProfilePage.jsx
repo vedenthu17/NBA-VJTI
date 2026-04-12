@@ -1,11 +1,12 @@
 import { useParams, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useFacultyProfile } from "../hooks/useFaculty";
 import FacultyProfile from "../components/FacultyProfile";
 import DashboardLayout from "../layouts/DashboardLayout";
 import { useAuth } from "../context/AuthContext";
 import { adminApi, entryApi, facultyApi, notificationApi } from "../api/facultyApi";
+import { getStoredNotifications, mergeStoredNotifications } from "../utils/notificationStore";
 
 function normalizeUrl(value) {
   const text = String(value || "").trim();
@@ -56,6 +57,7 @@ export default function FacultyProfilePage() {
   const [message, setMessage] = useState("");
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectRemark, setRejectRemark] = useState("");
+  const [cachedNotifications, setCachedNotifications] = useState([]);
   const { data, isLoading, error } = useFacultyProfile(id, token);
 
   const isOwnerById = Boolean(data?.faculty?.user_id && user?.id && data.faculty.user_id === user.id);
@@ -78,26 +80,55 @@ export default function FacultyProfilePage() {
 
   const { data: notifications = [] } = useQuery({
     queryKey: ["notifications"],
-    queryFn: () => notificationApi.list(token),
+    queryFn: () => notificationApi.list(token, { limit: 150 }),
     enabled: Boolean(token && canManage),
   });
 
-  const rejectionRemarks = notifications
-    .filter((n) => /rejected/i.test(String(n.title || "")))
+  const storageUserId = user?.id || "";
+
+  useEffect(() => {
+    if (!storageUserId) return;
+    setCachedNotifications(getStoredNotifications(storageUserId));
+  }, [storageUserId]);
+
+  useEffect(() => {
+    if (!storageUserId || !Array.isArray(notifications) || !notifications.length) return;
+    const merged = mergeStoredNotifications(storageUserId, notifications);
+    setCachedNotifications(merged);
+  }, [storageUserId, notifications]);
+
+  const mergedNotifications = useMemo(() => {
+    const map = new Map();
+    for (const item of [...(notifications || []), ...cachedNotifications]) {
+      map.set(item.id, item);
+    }
+    return Array.from(map.values()).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }, [notifications, cachedNotifications]);
+
+  const requestUpdates = mergedNotifications
     .map((n) => {
-      const text = String(n.message || "");
+      const title = String(n.title || "Notification");
+      const messageText = String(n.message || "");
       const marker = "Remarks:";
-      const index = text.indexOf(marker);
-      const remark = index >= 0 ? text.slice(index + marker.length).trim() : "";
-      if (!remark) return null;
+      const index = messageText.indexOf(marker);
+      const remark = index >= 0 ? messageText.slice(index + marker.length).trim() : "";
+
+      let status = "info";
+      if (/rejected/i.test(title)) status = "rejected";
+      if (/approved/i.test(title)) status = "approved";
+      if (/pending/i.test(title)) status = "pending";
+
       return {
         id: n.id,
-        title: n.title,
+        title,
+        message: messageText,
         remark,
+        status,
+        isRead: Boolean(n.is_read),
         createdAt: n.created_at,
       };
     })
-    .filter(Boolean);
+    .filter((item) => /approved|rejected|pending|removed|update/i.test(item.title));
 
   const createEntry = useMutation({
     mutationFn: ({ table, body }) => entryApi.create(table, { ...normalizeEntryPayload(body), faculty_id: id }, token),
@@ -291,7 +322,7 @@ export default function FacultyProfilePage() {
         onUpdateFaculty={handleUpdateFaculty}
         onUploadPhoto={handleUploadPhoto}
         message={message}
-        rejectionRemarks={rejectionRemarks}
+        requestUpdates={requestUpdates}
         busy={createEntry.isPending || updateEntry.isPending || updateFaculty.isPending}
       />
     </DashboardLayout>

@@ -14,6 +14,7 @@ export async function apiFetch(path, options = {}) {
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
       ...rest,
+      cache: "no-store",
       headers: {
         ...buildHeaders(token, body !== undefined),
         ...(rest.headers || {}),
