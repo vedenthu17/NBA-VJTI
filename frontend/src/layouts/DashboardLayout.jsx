@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Outlet } from "react-router-dom";
 
 const sideSections = [
@@ -44,13 +45,27 @@ const sideSections = [
   },
 ];
 
-function SideMenuItem({ item }) {
+function SideMenuItem({ item, isExpanded, onToggle }) {
+  const hasChildren = Boolean(item.children?.length);
+
   return (
     <div className="border-b border-slate-200 py-2">
-      <a href={item.to} className="block text-2xl font-normal text-slate-800 transition hover:pl-2 hover:text-blue-700">
-        {item.key}
-      </a>
-      {item.children && (
+      {hasChildren ? (
+        <button
+          type="button"
+          onClick={() => onToggle(item.key)}
+          aria-expanded={isExpanded}
+          className="flex w-full items-center justify-between text-left text-2xl font-normal text-slate-800 transition hover:pl-2 hover:text-blue-700"
+        >
+          <span>{item.key}</span>
+          <span className="ml-3 text-base text-slate-500">{isExpanded ? "-" : "+"}</span>
+        </button>
+      ) : (
+        <a href={item.to} className="block text-2xl font-normal text-slate-800 transition hover:pl-2 hover:text-blue-700">
+          {item.key}
+        </a>
+      )}
+      {hasChildren && isExpanded && (
         <div className="mt-2 space-y-1 pl-1">
           {item.children.map((sub) => (
             <a key={sub.key} href={sub.to} className="block text-lg font-normal text-slate-500 transition hover:text-blue-700">
@@ -64,13 +79,32 @@ function SideMenuItem({ item }) {
 }
 
 export default function DashboardLayout({ children }) {
+  const [expandedItems, setExpandedItems] = useState(() => new Set());
+
+  const toggleItem = (key) => {
+    setExpandedItems((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
+
   return (
     <section className="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-4 py-8 md:grid-cols-[320px_1fr] md:px-8">
       <aside className="p-2 md:sticky md:top-20 md:h-[calc(100vh-6rem)] md:overflow-y-auto">
         <h2 className="mb-4 border-b border-slate-300 pb-3 text-5xl font-light text-slate-800">Profile Sections</h2>
         <nav className="space-y-2">
           {sideSections.map((item) => (
-            <SideMenuItem key={item.key} item={item} />
+            <SideMenuItem
+              key={item.key}
+              item={item}
+              isExpanded={expandedItems.has(item.key)}
+              onToggle={toggleItem}
+            />
           ))}
         </nav>
       </aside>
