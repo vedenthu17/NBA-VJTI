@@ -11,6 +11,7 @@ export default function AppLayout() {
   const { isAuthenticated, role, logout, token, user } = useAuth();
   const [openNotifications, setOpenNotifications] = useState(false);
   const [openProfileMenu, setOpenProfileMenu] = useState(false);
+  const [notificationFilter, setNotificationFilter] = useState("all");
   const [toasts, setToasts] = useState([]);
   const previousNotificationsRef = useRef(null);
   const queryClient = useQueryClient();
@@ -36,15 +37,28 @@ export default function AppLayout() {
   const adminName = user?.email ? user.email.split("@")[0] : "Admin";
   const adminPhoto = ownFaculty?.photo_url || "https://via.placeholder.com/40x40?text=A";
 
-  const { data: notifications = [] } = useQuery({
-    queryKey: ["notifications"],
-    queryFn: () => notificationApi.list(token),
+  const {
+    data: notificationsData = [],
+    isLoading: notificationsLoading,
+    isError: notificationsError,
+    error: notificationsErrorObject,
+    refetch: refetchNotifications,
+  } = useQuery({
+    queryKey: ["notifications", notificationFilter],
+    queryFn: () => notificationApi.list(token, { unreadOnly: notificationFilter === "unread", limit: 150 }),
     enabled: Boolean(isAuthenticated && token),
     refetchInterval: 10000,
   });
 
+  const notifications = Array.isArray(notificationsData) ? notificationsData : [];
+
   const markRead = useMutation({
     mutationFn: (id) => notificationApi.markRead(id, token),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+  });
+
+  const markAllRead = useMutation({
+    mutationFn: () => notificationApi.markAllRead(token),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
   });
 
@@ -152,24 +166,86 @@ export default function AppLayout() {
           <div className="flex items-center gap-3 text-sm">
             {isAuthenticated && (
               <div className="relative">
-                <button onClick={() => setOpenNotifications((v) => !v)} className="liquid-chip rounded-xl px-3 py-2 text-xs font-semibold text-slate-800">
+                <button
+                  onClick={() => {
+                    setOpenNotifications((v) => {
+                      const next = !v;
+                      if (next) {
+                        refetchNotifications();
+                      }
+                      return next;
+                    });
+                  }}
+                  className="liquid-chip rounded-xl px-3 py-2 text-xs font-semibold text-slate-800"
+                >
                   Notifications {unreadCount ? `(${unreadCount})` : ""}
                 </button>
                 {openNotifications && (
                   <div className="liquid-glass absolute right-0 z-20 mt-2 w-80 rounded-xl p-3">
-                    <h3 className="mb-2 text-sm font-bold text-slate-700">Recent Notifications</h3>
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <h3 className="text-sm font-bold text-slate-800">Recent Notifications</h3>
+                      <button
+                        type="button"
+                        onClick={() => markAllRead.mutate()}
+                        disabled={markAllRead.isPending || !notifications.length}
+                        className="rounded border border-slate-300 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700 disabled:opacity-50"
+                      >
+                        {markAllRead.isPending ? "Marking..." : "Mark all read"}
+                      </button>
+                    </div>
+                    <div className="mb-2 flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setNotificationFilter("all")}
+                        className={`rounded px-2 py-1 text-[11px] font-semibold ${notificationFilter === "all" ? "bg-slate-800 text-white" : "bg-white text-slate-700 border border-slate-300"}`}
+                      >
+                        All
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setNotificationFilter("unread")}
+                        className={`rounded px-2 py-1 text-[11px] font-semibold ${notificationFilter === "unread" ? "bg-slate-800 text-white" : "bg-white text-slate-700 border border-slate-300"}`}
+                      >
+                        Unread
+                      </button>
+                    </div>
                     <div className="max-h-64 space-y-2 overflow-auto">
-                      {notifications.map((n) => (
+                      {notificationsLoading && <p className="rounded-lg bg-white/90 px-2 py-2 text-xs text-slate-600">Loading notifications...</p>}
+
+                      {notificationsError && (
+                        <div className="rounded-lg border border-rose-300 bg-rose-50 px-2 py-2 text-xs text-rose-700">
+                          <p>{notificationsErrorObject?.message || "Unable to load notifications."}</p>
+                          <button
+                            type="button"
+                            onClick={() => refetchNotifications()}
+                            className="mt-2 rounded border border-rose-300 bg-white px-2 py-1 font-semibold text-rose-700"
+                          >
+                            Retry
+                          </button>
+                        </div>
+                      )}
+
+                      {!notificationsLoading && !notificationsError && notifications.map((n) => (
                         <button
                           key={n.id}
                           onClick={() => markRead.mutate(n.id)}
-                          className={`w-full rounded-xl border px-2 py-2 text-left text-xs ${n.is_read ? "liquid-control" : "liquid-chip"}`}
+                          className={`w-full rounded-xl border px-2 py-2 text-left text-xs ${n.is_read ? "bg-white/90 text-slate-700" : "bg-amber-50 text-slate-800 border-amber-300"}`}
                         >
-                          <p className="font-semibold text-slate-700">{n.title}</p>
-                          <p className="text-slate-600">{n.message}</p>
+                          <p className="font-semibold text-slate-800">{n.title || "Notification"}</p>
+                          <p className="text-slate-700">{n.message || "No details available."}</p>
+                          {n.created_at && <p className="mt-1 text-[11px] text-slate-500">{new Date(n.created_at).toLocaleString()}</p>}
                         </button>
                       ))}
-                      {!notifications.length && <p className="text-xs text-slate-500">No notifications yet.</p>}
+
+                      {!notificationsLoading && !notificationsError && !notifications.length && (
+                        <p className="rounded-lg bg-white/90 px-2 py-2 text-xs text-slate-600">
+                          {role === "admin"
+                            ? "No admin notifications yet. New faculty submissions and updates will appear here."
+                            : notificationFilter === "unread"
+                              ? "No unread notifications."
+                              : "No notifications yet."}
+                        </p>
+                      )}
                     </div>
                   </div>
                 )}

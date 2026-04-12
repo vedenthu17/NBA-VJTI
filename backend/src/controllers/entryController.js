@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { supabaseAdmin } from "../db/supabase.js";
+import { emitToUser } from "../realtime/wsHub.js";
 
 const tableSchemas = {
   publications: z.object({
@@ -117,6 +118,38 @@ function getTable(req) {
   return table;
 }
 
+async function notifyAdmins(title, message) {
+  const { data: admins } = await supabaseAdmin
+    .from("users")
+    .select("auth_user_id")
+    .eq("role", "admin");
+
+  for (const admin of admins ?? []) {
+    const adminId = admin?.auth_user_id;
+    if (!adminId) continue;
+
+    const { data, error } = await supabaseAdmin
+      .from("notifications")
+      .insert({ recipient_user_id: adminId, title, message, is_read: false })
+      .select("*")
+      .single();
+
+    if (error || !data) {
+      emitToUser(adminId, "notification.created", {
+        id: `ws-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+        recipient_user_id: adminId,
+        title,
+        message,
+        is_read: false,
+        created_at: new Date().toISOString(),
+      });
+      continue;
+    }
+
+    emitToUser(adminId, "notification.created", data);
+  }
+}
+
 async function validateFacultyAccess(user, facultyId) {
   if (user.role === "admin") return true;
 
@@ -179,6 +212,13 @@ export async function createEntry(req, res) {
     return res.status(500).json({ message: error.message });
   }
 
+  if (req.user.role !== "admin") {
+    await notifyAdmins(
+      "New Entry Pending Review",
+      `${table} entry submitted by faculty and is waiting for approval.`,
+    );
+  }
+
   return res.status(201).json(data);
 }
 
@@ -227,6 +267,13 @@ export async function updateEntry(req, res) {
 
   if (error) {
     return res.status(500).json({ message: error.message });
+  }
+
+  if (req.user.role !== "admin") {
+    await notifyAdmins(
+      "Entry Update Pending Review",
+      `${table} entry was updated by faculty and needs approval.`,
+    );
   }
 
   return res.json(data);

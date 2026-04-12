@@ -65,6 +65,7 @@ export default function FacultyProfile({
   onUpdateFaculty,
   onUploadPhoto,
   message = "",
+  rejectionRemarks = [],
   busy = false,
 }) {
   const {
@@ -297,6 +298,21 @@ export default function FacultyProfile({
   return (
     <div className="space-y-8 smooth-fade">
       {message && <p className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-slate-700">{message}</p>}
+
+      {canManage && rejectionRemarks.length > 0 && (
+        <section className="rounded border border-rose-300 bg-rose-50 px-4 py-3 text-slate-800">
+          <h2 className="text-sm font-bold uppercase tracking-wide text-rose-700">Rejected Remarks</h2>
+          <div className="mt-2 space-y-2">
+            {rejectionRemarks.slice(0, 8).map((item) => (
+              <div key={item.id} className="rounded border border-rose-200 bg-white px-3 py-2">
+                <p className="text-xs font-semibold text-rose-700">{item.title}</p>
+                <p className="text-sm text-slate-700">{item.remark}</p>
+                {item.createdAt && <p className="mt-1 text-xs text-slate-500">{new Date(item.createdAt).toLocaleString()}</p>}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="rounded-lg bg-gradient-to-r from-blue-600 to-blue-500 p-6 text-white shadow-xl">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-[220px_1fr_auto]">

@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "../db/supabase.js";
 import { z } from "zod";
 import jwt from "jsonwebtoken";
+import { emitToUser } from "../realtime/wsHub.js";
 
 const jwtSecret = process.env.JWT_SECRET || "dev-nba-jwt-secret";
 const adminSignupCode = process.env.ADMIN_SIGNUP_CODE || "";
@@ -75,10 +76,11 @@ async function callSupabaseAuth(path, payload) {
 }
 
 async function syncUserRoleRow({ authUserId, email, role }) {
+  const normalizedEmail = String(email || "").trim().toLowerCase();
   const { error } = await supabaseAdmin.from("users").upsert(
     {
       auth_user_id: authUserId,
-      email,
+      email: normalizedEmail,
       role,
     },
     { onConflict: "auth_user_id" },
@@ -95,6 +97,49 @@ async function resolveEffectiveRole({ authUserId, fallbackRole }) {
     .maybeSingle();
 
   return data?.role || fallbackRole || "viewer";
+}
+
+async function linkFacultyProfileToAuthUser(authUserId, email) {
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  if (!normalizedEmail) return;
+
+  await supabaseAdmin
+    .from("faculty")
+    .update({ user_id: authUserId })
+    .is("user_id", null)
+    .ilike("email", normalizedEmail);
+}
+
+async function notifyAdmins(title, message) {
+  const { data: admins } = await supabaseAdmin
+    .from("users")
+    .select("auth_user_id")
+    .eq("role", "admin");
+
+  for (const admin of admins ?? []) {
+    const adminId = admin?.auth_user_id;
+    if (!adminId) continue;
+
+    const { data, error } = await supabaseAdmin
+      .from("notifications")
+      .insert({ recipient_user_id: adminId, title, message, is_read: false })
+      .select("*")
+      .single();
+
+    if (error || !data) {
+      emitToUser(adminId, "notification.created", {
+        id: `ws-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+        recipient_user_id: adminId,
+        title,
+        message,
+        is_read: false,
+        created_at: new Date().toISOString(),
+      });
+      continue;
+    }
+
+    emitToUser(adminId, "notification.created", data);
+  }
 }
 
 export async function login(req, res) {
@@ -120,17 +165,24 @@ export async function login(req, res) {
     return res.status(err.status || 401).json({ message: err.message || "Login failed" });
   }
 
-  const metadataRole = authResult.user?.user_metadata?.role || "viewer";
+  const metadataRole = authResult.user?.user_metadata?.role || "";
+  const existingRole = await resolveEffectiveRole({
+    authUserId: authResult.user.id,
+    fallbackRole: "",
+  });
+  const effectiveRole = metadataRole || existingRole || "viewer";
 
   const syncError = await syncUserRoleRow({
     authUserId: authResult.user.id,
     email: authResult.user.email,
-    role: metadataRole,
+    role: effectiveRole,
   });
   const role = await resolveEffectiveRole({
     authUserId: authResult.user.id,
-    fallbackRole: metadataRole,
+    fallbackRole: effectiveRole,
   });
+
+  await linkFacultyProfileToAuthUser(authResult.user.id, authResult.user.email);
 
 
   if (syncError) {
@@ -229,7 +281,14 @@ export async function register(req, res) {
     if (facultyError) {
       return res.status(500).json({ message: facultyError.message });
     }
+
+    await notifyAdmins(
+      "New Faculty Registration Pending",
+      `${name} registered as faculty and profile approval is pending.`,
+    );
   }
+
+  await linkFacultyProfileToAuthUser(authUserId, email);
 
   const backendToken = jwt.sign(
     {

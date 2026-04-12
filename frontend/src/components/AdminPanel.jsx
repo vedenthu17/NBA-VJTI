@@ -57,6 +57,13 @@ export default function AdminPanel({ initialTab = "pending" }) {
   const [message, setMessage] = useState("");
   const [activeTab, setActiveTab] = useState(initialTab);
   const [selectedRequest, setSelectedRequest] = useState(null);
+  const [rejectDialog, setRejectDialog] = useState({
+    open: false,
+    table: "",
+    id: "",
+    remark: "",
+    closeDetailsAfter: false,
+  });
   const [editingAchievementId, setEditingAchievementId] = useState("");
   const [achievementForm, setAchievementForm] = useState({
     faculty_id: "",
@@ -200,7 +207,7 @@ export default function AdminPanel({ initialTab = "pending" }) {
   });
 
   const rejectMutation = useMutation({
-    mutationFn: ({ table, id }) => adminApi.reject(table, id, token),
+    mutationFn: ({ table, id, remark }) => adminApi.reject(table, id, token, { remark }),
     onSuccess: () => {
       setMessage("Rejected successfully.");
       queryClient.invalidateQueries({ queryKey: ["pending"] });
@@ -298,6 +305,34 @@ export default function AdminPanel({ initialTab = "pending" }) {
   };
 
   const closeDetails = () => setSelectedRequest(null);
+
+  const openRejectDialog = ({ table, id, closeDetailsAfter = false }) => {
+    setRejectDialog({
+      open: true,
+      table,
+      id,
+      remark: "",
+      closeDetailsAfter,
+    });
+  };
+
+  const closeRejectDialog = () => {
+    setRejectDialog({
+      open: false,
+      table: "",
+      id: "",
+      remark: "",
+      closeDetailsAfter: false,
+    });
+  };
+
+  const submitReject = (remark) => {
+    rejectMutation.mutate({ table: rejectDialog.table, id: rejectDialog.id, remark: remark.trim() });
+    if (rejectDialog.closeDetailsAfter) {
+      closeDetails();
+    }
+    closeRejectDialog();
+  };
 
   const selectedProfileId = selectedRequest
     ? selectedRequest.table === "faculty"
@@ -424,7 +459,7 @@ export default function AdminPanel({ initialTab = "pending" }) {
                             disabled={approveMutation.isPending || rejectMutation.isPending || removeDetailMutation.isPending}
                             onClick={(event) => {
                               event.stopPropagation();
-                              rejectMutation.mutate({ table, id: row.id });
+                              openRejectDialog({ table, id: row.id });
                             }}
                           >
                             Reject
@@ -673,8 +708,7 @@ export default function AdminPanel({ initialTab = "pending" }) {
                 className="rounded bg-rose-600 px-3 py-2 text-sm font-semibold text-white"
                 disabled={approveMutation.isPending || rejectMutation.isPending || removeDetailMutation.isPending}
                 onClick={() => {
-                  rejectMutation.mutate({ table: selectedRequest.table, id: selectedRequest.row.id });
-                  closeDetails();
+                  openRejectDialog({ table: selectedRequest.table, id: selectedRequest.row.id, closeDetailsAfter: true });
                 }}
               >
                 Reject
@@ -688,6 +722,50 @@ export default function AdminPanel({ initialTab = "pending" }) {
                 }}
               >
                 Remove Detail
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {rejectDialog.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4" onClick={closeRejectDialog}>
+          <div className="w-full max-w-lg rounded-xl border border-slate-300 bg-white p-5 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+            <h3 className="text-lg font-bold text-slate-800">Reject Request</h3>
+            <p className="mt-1 text-sm text-slate-600">Add an optional remark for the faculty member. You can also reject without a remark.</p>
+            <textarea
+              rows={4}
+              maxLength={500}
+              value={rejectDialog.remark}
+              onChange={(event) => setRejectDialog((prev) => ({ ...prev, remark: event.target.value }))}
+              className="mt-3 w-full rounded border border-slate-300 px-3 py-2 text-sm text-slate-800 focus:border-rose-400 focus:outline-none"
+              placeholder="Optional remark (max 500 characters)"
+            />
+            <p className="mt-1 text-right text-xs text-slate-500">{rejectDialog.remark.length}/500</p>
+            <div className="mt-4 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                className="rounded border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700"
+                onClick={closeRejectDialog}
+                disabled={rejectMutation.isPending}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="rounded border border-rose-300 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700"
+                onClick={() => submitReject("")}
+                disabled={rejectMutation.isPending}
+              >
+                Reject Without Remark
+              </button>
+              <button
+                type="button"
+                className="rounded bg-rose-600 px-3 py-2 text-sm font-semibold text-white"
+                onClick={() => submitReject(rejectDialog.remark)}
+                disabled={rejectMutation.isPending}
+              >
+                {rejectMutation.isPending ? "Rejecting..." : "Reject and Send Remark"}
               </button>
             </div>
           </div>

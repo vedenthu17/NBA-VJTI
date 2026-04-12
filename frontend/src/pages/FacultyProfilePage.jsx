@@ -1,11 +1,11 @@
 import { useParams, useSearchParams } from "react-router-dom";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useFacultyProfile } from "../hooks/useFaculty";
 import FacultyProfile from "../components/FacultyProfile";
 import DashboardLayout from "../layouts/DashboardLayout";
 import { useAuth } from "../context/AuthContext";
-import { adminApi, entryApi, facultyApi } from "../api/facultyApi";
+import { adminApi, entryApi, facultyApi, notificationApi } from "../api/facultyApi";
 
 function normalizeUrl(value) {
   const text = String(value || "").trim();
@@ -54,6 +54,8 @@ export default function FacultyProfilePage() {
   const { token, role, user } = useAuth();
   const queryClient = useQueryClient();
   const [message, setMessage] = useState("");
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectRemark, setRejectRemark] = useState("");
   const { data, isLoading, error } = useFacultyProfile(id, token);
 
   const isOwnerById = Boolean(data?.faculty?.user_id && user?.id && data.faculty.user_id === user.id);
@@ -73,6 +75,29 @@ export default function FacultyProfilePage() {
     !viewerPreview &&
     !reviewPreview &&
     Boolean(token && role !== "viewer" && data?.faculty && (role === "admin" || isOwnerById || isOwnerByEmail));
+
+  const { data: notifications = [] } = useQuery({
+    queryKey: ["notifications"],
+    queryFn: () => notificationApi.list(token),
+    enabled: Boolean(token && canManage),
+  });
+
+  const rejectionRemarks = notifications
+    .filter((n) => /rejected/i.test(String(n.title || "")))
+    .map((n) => {
+      const text = String(n.message || "");
+      const marker = "Remarks:";
+      const index = text.indexOf(marker);
+      const remark = index >= 0 ? text.slice(index + marker.length).trim() : "";
+      if (!remark) return null;
+      return {
+        id: n.id,
+        title: n.title,
+        remark,
+        createdAt: n.created_at,
+      };
+    })
+    .filter(Boolean);
 
   const createEntry = useMutation({
     mutationFn: ({ table, body }) => entryApi.create(table, { ...normalizeEntryPayload(body), faculty_id: id }, token),
@@ -151,7 +176,7 @@ export default function FacultyProfilePage() {
   });
 
   const rejectReview = useMutation({
-    mutationFn: () => adminApi.reject(reviewTable, reviewRequestId, token),
+    mutationFn: ({ remark }) => adminApi.reject(reviewTable, reviewRequestId, token, { remark }),
     onSuccess: () => {
       setMessage("Rejected successfully from review page.");
       queryClient.invalidateQueries({ queryKey: ["faculty", id] });
@@ -171,6 +196,12 @@ export default function FacultyProfilePage() {
     },
     onError: (err) => setMessage(err.message || "Unable to remove this request."),
   });
+
+  const submitReviewReject = (remark) => {
+    rejectReview.mutate({ remark: remark.trim() });
+    setRejectDialogOpen(false);
+    setRejectRemark("");
+  };
 
   if (isLoading) return <p className="px-4 py-10">Loading profile...</p>;
   if (error) return <p className="px-4 py-10 text-rose-600">{error.message}</p>;
@@ -192,7 +223,7 @@ export default function FacultyProfilePage() {
             </button>
             <button
               className="rounded bg-rose-600 px-3 py-2 text-sm font-semibold text-white"
-              onClick={() => rejectReview.mutate()}
+              onClick={() => setRejectDialogOpen(true)}
               disabled={approveReview.isPending || rejectReview.isPending || removeReview.isPending}
             >
               Reject This Change
@@ -207,6 +238,51 @@ export default function FacultyProfilePage() {
           </div>
         </section>
       )}
+
+      {rejectDialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4" onClick={() => setRejectDialogOpen(false)}>
+          <div className="w-full max-w-lg rounded-xl border border-slate-300 bg-white p-5 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+            <h3 className="text-lg font-bold text-slate-800">Reject This Change</h3>
+            <p className="mt-1 text-sm text-slate-600">Remark is optional. Leave it empty if you only want to reject.</p>
+            <textarea
+              rows={4}
+              maxLength={500}
+              value={rejectRemark}
+              onChange={(event) => setRejectRemark(event.target.value)}
+              className="mt-3 w-full rounded border border-slate-300 px-3 py-2 text-sm text-slate-800 focus:border-rose-400 focus:outline-none"
+              placeholder="Optional remark (max 500 characters)"
+            />
+            <p className="mt-1 text-right text-xs text-slate-500">{rejectRemark.length}/500</p>
+            <div className="mt-4 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                className="rounded border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700"
+                onClick={() => setRejectDialogOpen(false)}
+                disabled={rejectReview.isPending}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="rounded border border-rose-300 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700"
+                onClick={() => submitReviewReject("")}
+                disabled={rejectReview.isPending}
+              >
+                Reject Without Remark
+              </button>
+              <button
+                type="button"
+                className="rounded bg-rose-600 px-3 py-2 text-sm font-semibold text-white"
+                onClick={() => submitReviewReject(rejectRemark)}
+                disabled={rejectReview.isPending}
+              >
+                {rejectReview.isPending ? "Rejecting..." : "Reject and Send Remark"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <FacultyProfile
         data={data}
         canManage={canManage}
@@ -215,6 +291,7 @@ export default function FacultyProfilePage() {
         onUpdateFaculty={handleUpdateFaculty}
         onUploadPhoto={handleUploadPhoto}
         message={message}
+        rejectionRemarks={rejectionRemarks}
         busy={createEntry.isPending || updateEntry.isPending || updateFaculty.isPending}
       />
     </DashboardLayout>
