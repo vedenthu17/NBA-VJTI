@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { supabaseAdmin } from "../db/supabase.js";
+import { emitToUser } from "../realtime/wsHub.js";
 
 const facultySchema = z.object({
   name: z.string().min(2),
@@ -36,6 +37,38 @@ async function canReadUnapproved(req, facultyId) {
     .maybeSingle();
 
   return Boolean(data);
+}
+
+async function notifyAdmins(title, message) {
+  const { data: admins } = await supabaseAdmin
+    .from("users")
+    .select("auth_user_id")
+    .eq("role", "admin");
+
+  for (const admin of admins ?? []) {
+    const adminId = admin?.auth_user_id;
+    if (!adminId) continue;
+
+    const { data, error } = await supabaseAdmin
+      .from("notifications")
+      .insert({ recipient_user_id: adminId, title, message, is_read: false })
+      .select("*")
+      .single();
+
+    if (error || !data) {
+      emitToUser(adminId, "notification.created", {
+        id: `ws-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+        recipient_user_id: adminId,
+        title,
+        message,
+        is_read: false,
+        created_at: new Date().toISOString(),
+      });
+      continue;
+    }
+
+    emitToUser(adminId, "notification.created", data);
+  }
 }
 
 export async function listFaculty(req, res) {
@@ -144,6 +177,10 @@ export async function createFaculty(req, res) {
     return res.status(500).json({ message: error.message });
   }
 
+  if (req.user.role !== "admin") {
+    await notifyAdmins("Faculty Profile Pending Review", `${parsed.data.name} profile was created and awaits admin approval.`);
+  }
+
   return res.status(201).json(data);
 }
 
@@ -188,6 +225,10 @@ export async function updateFaculty(req, res) {
 
   if (error) {
     return res.status(500).json({ message: error.message });
+  }
+
+  if (req.user.role !== "admin") {
+    await notifyAdmins("Faculty Profile Update Pending", `${data.name || "Faculty"} updated profile details and awaits approval.`);
   }
 
   return res.json(data);

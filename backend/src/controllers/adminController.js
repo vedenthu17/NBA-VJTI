@@ -18,10 +18,11 @@ async function resolveRecipientUserId(table, record) {
     }
 
     if (record.email) {
+      const normalizedEmail = String(record.email).trim().toLowerCase();
       const { data: userRow } = await supabaseAdmin
         .from("users")
         .select("auth_user_id")
-        .eq("email", record.email)
+        .ilike("email", normalizedEmail)
         .maybeSingle();
       return userRow?.auth_user_id ?? null;
     }
@@ -37,10 +38,11 @@ async function resolveRecipientUserId(table, record) {
   }
 
   if (data?.email) {
+    const normalizedEmail = String(data.email).trim().toLowerCase();
     const { data: userRow } = await supabaseAdmin
       .from("users")
       .select("auth_user_id")
-      .eq("email", data.email)
+      .ilike("email", normalizedEmail)
       .maybeSingle();
     return userRow?.auth_user_id ?? null;
   }
@@ -167,6 +169,8 @@ export async function approveEntry(req, res) {
 
 export async function rejectEntry(req, res) {
   const { table, id } = req.params;
+  const rawRemark = typeof req.body?.remark === "string" ? req.body.remark.trim() : "";
+  const remark = rawRemark.slice(0, 500);
   if (!TABLES.includes(table)) {
     return res.status(400).json({ message: "Unsupported table" });
   }
@@ -179,20 +183,34 @@ export async function rejectEntry(req, res) {
     await createNotification(
       recipientUserId,
       "Update Rejected",
-      `Your ${table} update was rejected by admin. The previously approved record is still visible.`,
+      `Your ${table} update was rejected by admin. The previously approved record is still visible.${remark ? ` Remarks: ${remark}` : ""}`,
     );
     return res.json({ message: "Rejected and reverted to previously approved data" });
   }
 
-  const { error } = await supabaseAdmin.from(table).delete().eq("id", id);
+  const { data: rejectedRow, error } = await supabaseAdmin
+    .from(table)
+    .update({
+      is_approved: false,
+      approved_by: null,
+      approved_at: null,
+      updated_by: req.user.id,
+    })
+    .eq("id", id)
+    .select("*")
+    .single();
   if (error) {
     return res.status(500).json({ message: error.message });
   }
 
   const recipientUserId = await resolveRecipientUserId(table, beforeRecord);
-  await createNotification(recipientUserId, "Entry Rejected", `Your ${table} entry was rejected by admin.`);
+  await createNotification(
+    recipientUserId,
+    "Entry Rejected",
+    `Your ${table} entry was rejected by admin.${remark ? ` Remarks: ${remark}` : ""}`,
+  );
 
-  return res.status(204).send();
+  return res.json(rejectedRow);
 }
 
 export async function getAuditTimeline(req, res) {

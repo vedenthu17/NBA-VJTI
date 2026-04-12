@@ -2,24 +2,28 @@ import { useEffect, useState } from "react";
 
 export default function Toast({ id, title, message, onClose, duration = 5000 }) {
   const [isVisible, setIsVisible] = useState(true);
+  const isRejected = title.includes("Rejected");
 
   useEffect(() => {
+    if (isRejected) {
+      return undefined;
+    }
+
     const timer = setTimeout(() => {
       setIsVisible(false);
       onClose(id);
     }, duration);
 
     return () => clearTimeout(timer);
-  }, [id, onClose, duration]);
+  }, [id, onClose, duration, isRejected]);
 
   if (!isVisible) return null;
 
   const isApproved = title.includes("Approved");
-  const isRejected = title.includes("Rejected");
 
   return (
     <div
-      className={`fixed right-4 top-4 z-50 rounded-xl p-4 shadow-lg transition-opacity duration-300 ${
+      className={`fixed bottom-4 right-4 z-50 rounded-xl p-4 shadow-lg transition-opacity duration-300 ${
         isApproved
           ? "bg-green-500 text-white"
           : isRejected

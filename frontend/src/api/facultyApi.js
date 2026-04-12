@@ -33,7 +33,7 @@ export const adminApi = {
     return apiFetch(`/admin/query?${query.toString()}`, { token });
   },
   approve: (table, id, token) => apiFetch(`/admin/approve/${table}/${id}`, { method: "PUT", token }),
-  reject: (table, id, token) => apiFetch(`/admin/reject/${table}/${id}`, { method: "DELETE", token }),
+  reject: (table, id, token, body) => apiFetch(`/admin/reject/${table}/${id}`, { method: "DELETE", token, body }),
   removeDetail: (table, id, token) => apiFetch(`/admin/remove/${table}/${id}`, { method: "DELETE", token }),
   removeFaculty: (id, token) => apiFetch(`/admin/faculty/${id}`, { method: "DELETE", token }),
 };
@@ -44,8 +44,15 @@ export const reportApi = {
 };
 
 export const notificationApi = {
-  list: (token) => apiFetch("/notifications", { token }),
+  list: (token, params = {}) => {
+    const query = new URLSearchParams();
+    if (params.unreadOnly) query.set("unread", "true");
+    if (params.limit) query.set("limit", String(params.limit));
+    const suffix = query.toString() ? `?${query.toString()}` : "";
+    return apiFetch(`/notifications${suffix}`, { token });
+  },
   markRead: (id, token) => apiFetch(`/notifications/${id}/read`, { method: "PUT", token }),
+  markAllRead: (token) => apiFetch("/notifications/read-all", { method: "PUT", token }),
 };
 
 export const achievementApi = {
