@@ -15,6 +15,8 @@ import {
 
 export default function AppLayout() {
   const { isAuthenticated, role, logout, token, user } = useAuth();
+  const canUseNotifications = isAuthenticated && (role === "faculty" || role === "admin");
+  const canUseProfileMenu = isAuthenticated && (role === "faculty" || role === "admin");
   const [openNotifications, setOpenNotifications] = useState(false);
   const [openProfileMenu, setOpenProfileMenu] = useState(false);
   const [notificationFilter, setNotificationFilter] = useState("all");
@@ -54,7 +56,7 @@ export default function AppLayout() {
   } = useQuery({
     queryKey: ["notifications", notificationFilter],
     queryFn: () => notificationApi.list(token, { unreadOnly: notificationFilter === "unread", limit: 150 }),
-    enabled: Boolean(isAuthenticated && token),
+    enabled: Boolean(canUseNotifications && token),
     refetchInterval: 10000,
   });
 
@@ -128,7 +130,7 @@ export default function AppLayout() {
   };
 
   useEffect(() => {
-    if (!isAuthenticated || !token) {
+    if (!canUseNotifications || !token) {
       return undefined;
     }
 
@@ -161,7 +163,7 @@ export default function AppLayout() {
     return () => {
       ws.close();
     };
-  }, [isAuthenticated, token, queryClient, storageUserId]);
+  }, [canUseNotifications, token, queryClient, storageUserId]);
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
@@ -203,7 +205,7 @@ export default function AppLayout() {
             ))}
           </nav>
           <div className="flex items-center gap-3 text-sm">
-            {isAuthenticated && (
+            {canUseNotifications && (
               <div className="relative">
                 <button
                   onClick={() => {
@@ -291,7 +293,7 @@ export default function AppLayout() {
               </div>
             )}
 
-            {isAuthenticated && role === "faculty" && ownFaculty && (
+            {canUseProfileMenu && role === "faculty" && ownFaculty && (
               <div className="relative">
                 <button
                   onClick={() => setOpenProfileMenu((v) => !v)}
@@ -318,7 +320,7 @@ export default function AppLayout() {
               </div>
             )}
 
-            {isAuthenticated && role === "admin" && (
+            {canUseProfileMenu && role === "admin" && (
               <div className="relative">
                 <button
                   onClick={() => setOpenProfileMenu((v) => !v)}
