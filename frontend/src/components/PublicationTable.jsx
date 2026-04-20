@@ -20,9 +20,9 @@ export default function PublicationTable({ items = [], showApproval = false }) {
               <td className="px-3 py-2">{row.year}</td>
               <td className="px-3 py-2">{row.indexed || "-"}</td>
               <td className="px-3 py-2">
-                <div className="flex flex-wrap gap-2 text-xs">
-                  {row.reference_url && <a href={row.reference_url} target="_blank" rel="noreferrer" className="text-blue-700 underline">URL</a>}
-                  {row.pdf_url && <a href={row.pdf_url} target="_blank" rel="noreferrer" className="text-blue-700 underline">PDF</a>}
+                <div className="flex flex-wrap gap-2 text-sm">
+                  {row.reference_url && <a href={row.reference_url} target="_blank" rel="noreferrer" className="text-sm font-semibold text-blue-700 underline">URL</a>}
+                  {row.pdf_url && <a href={row.pdf_url} target="_blank" rel="noreferrer" className="text-sm font-semibold text-blue-700 underline">PDF</a>}
                   {!row.reference_url && !row.pdf_url && "-"}
                 </div>
               </td>

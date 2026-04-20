@@ -6,8 +6,8 @@ const tableSchemas = {
   publications: z.object({
     faculty_id: z.string().uuid(),
     title: z.string().min(2),
-    authors: z.string().min(2),
-    journal: z.string().min(2),
+    authors: z.string().optional().default(""),
+    journal: z.string().optional().default(""),
     year: z.coerce.number().int(),
     doi: z.string().optional().default(""),
     type: z.string().optional().default("journal"),

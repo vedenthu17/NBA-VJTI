@@ -12,8 +12,8 @@ import ProjectTable from "../components/ProjectTable";
 const publicationSchema = z.object({
   faculty_id: z.string().uuid("Select a valid faculty"),
   title: z.string().min(2),
-  authors: z.string().min(2),
-  journal: z.string().min(2),
+  authors: z.string().optional(),
+  journal: z.string().optional(),
   year: z.coerce.number().int(),
   indexed: z.string().optional(),
 });

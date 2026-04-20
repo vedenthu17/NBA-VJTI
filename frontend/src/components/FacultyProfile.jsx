@@ -41,12 +41,15 @@ function textInputClass() {
   return "w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm focus:border-blue-700 focus:outline-none";
 }
 
-function ItemActions({ canManage, isEditing, onEdit, onSave, busy }) {
+function ItemActions({ canManage, isEditing, onEdit, onSave, onDelete, busy }) {
   if (!canManage) return null;
   return (
     <div className="flex items-center gap-2">
       <button onClick={onEdit} className="rounded border border-blue-700 px-2 py-1 text-xs font-bold text-blue-700">
         {isEditing ? "Cancel" : "Edit"}
+      </button>
+      <button onClick={onDelete} disabled={busy} className="rounded border border-rose-600 px-2 py-1 text-xs font-bold text-rose-700">
+        Delete
       </button>
       {isEditing && (
         <button onClick={onSave} disabled={busy} className="gold-button rounded px-2 py-1 text-xs font-bold text-slate-900">
@@ -57,11 +60,60 @@ function ItemActions({ canManage, isEditing, onEdit, onSave, busy }) {
   );
 }
 
+function IconLink({ href, label, children }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      aria-label={label}
+      title={label}
+      className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/80 bg-white/10 text-white hover:bg-white/20"
+    >
+      {children}
+    </a>
+  );
+}
+
+function LinkedInIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current" aria-hidden="true">
+      <path d="M4.98 3.5C4.98 4.88 3.87 6 2.49 6S0 4.88 0 3.5 1.11 1 2.49 1s2.49 1.12 2.49 2.5zM.5 8h4V23h-4V8zM8 8h3.8v2.1h.1c.53-1 1.84-2.1 3.8-2.1 4.06 0 4.8 2.67 4.8 6.14V23h-4v-6.9c0-1.64-.03-3.74-2.28-3.74-2.29 0-2.64 1.79-2.64 3.63V23H8V8z" />
+    </svg>
+  );
+}
+
+function GithubIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current" aria-hidden="true">
+      <path d="M12 .5a12 12 0 0 0-3.79 23.39c.6.11.82-.26.82-.58v-2.04c-3.34.73-4.04-1.42-4.04-1.42-.55-1.38-1.33-1.75-1.33-1.75-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.08 1.84 2.83 1.31 3.52 1 .11-.78.42-1.31.77-1.61-2.67-.31-5.47-1.33-5.47-5.92 0-1.31.47-2.38 1.24-3.23-.13-.31-.54-1.57.12-3.27 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.28-1.55 3.29-1.23 3.29-1.23.67 1.7.26 2.96.13 3.27.77.85 1.23 1.92 1.23 3.23 0 4.6-2.8 5.61-5.48 5.91.43.37.82 1.09.82 2.2v3.27c0 .32.22.7.83.58A12 12 0 0 0 12 .5z" />
+    </svg>
+  );
+}
+
+function ScholarIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current" aria-hidden="true">
+      <path d="M12 3 1 9l11 6 9-4.91V17h2V9L12 3zm0 14L5 13.27V17c0 2.76 3.13 5 7 5s7-2.24 7-5v-3.73L12 17z" />
+    </svg>
+  );
+}
+
+function GlobeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth="1.8" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
+    </svg>
+  );
+}
+
 export default function FacultyProfile({
   data,
   canManage = false,
   onCreateEntry,
   onUpdateEntry,
+  onDeleteEntry,
   onUpdateFaculty,
   onUploadPhoto,
   message = "",
@@ -117,6 +169,7 @@ export default function FacultyProfile({
       projects: { title: "", funding_agency: "", amount: 0, year: new Date().getFullYear(), status: "ongoing", reference_url: "", pdf_url: "" },
       fdp: { title: "", role: "participant", duration: "", organized_by: "", start_date: "", end_date: "" },
       publications: { title: "", authors: "", journal: "", year: new Date().getFullYear(), indexed: "", type: "journal", doi: "", reference_url: "", pdf_url: "", scopus: false, wos: false },
+      conferences: { title: "", authors: "", journal: "", year: new Date().getFullYear(), indexed: "", type: "conference", doi: "", reference_url: "", pdf_url: "", scopus: false, wos: false },
       patents: { title: "", status: "filed", year: new Date().getFullYear(), number: "", reference_url: "", pdf_url: "" },
       books: { title: "", publisher: "", isbn: "", year: new Date().getFullYear(), reference_url: "", pdf_url: "" },
       collaborations: { title: "", organization: "", country: "", role: "collaborator", start_year: new Date().getFullYear(), end_year: "" },
@@ -133,9 +186,9 @@ export default function FacultyProfile({
     setEntryForm(sectionFormTemplates[table] || {});
   };
 
-  const submitEntry = async (table) => {
+  const submitEntry = async (table, payload = entryForm) => {
     if (!onCreateEntry) return;
-    await onCreateEntry(table, entryForm);
+    await onCreateEntry(table, payload);
     setOpenForm("");
     setEntryForm({});
     setMiscFieldKey("");
@@ -278,6 +331,15 @@ export default function FacultyProfile({
     setEntryEdit({});
   };
 
+  const deleteRow = async (table, rowId) => {
+    if (!onDeleteEntry) return;
+    await onDeleteEntry(table, rowId);
+    if (editKey === `${table}:${rowId}`) {
+      setEditKey("");
+      setEntryEdit({});
+    }
+  };
+
   const addMiscField = () => {
     const key = miscFieldKey.trim();
     if (!key) return;
@@ -295,6 +357,9 @@ export default function FacultyProfile({
   const honorItems = awards.filter((a) => a.honors);
   const membershipItems = awards.filter((a) => a.membership);
   const contributionItems = awards.filter((a) => a.contributions);
+  const awardItems = awards.filter((a) => !a.honors && !a.membership && !a.contributions);
+  const conferenceItems = publications.filter((item) => String(item.type || "").toLowerCase() === "conference");
+  const publicationItems = publications.filter((item) => String(item.type || "").toLowerCase() !== "conference");
   const filteredUpdates = requestUpdates.filter((item) => {
     if (updatesTab === "all") return true;
     if (updatesTab === "rejected") return item.status === "rejected";
@@ -314,16 +379,32 @@ export default function FacultyProfile({
             className="h-52 w-52 rounded border-2 border-white/80 object-cover"
           />
           <div className="space-y-3">
-            <h1 className="text-4xl font-extrabold text-white">{faculty.name}</h1>
+            <h1 className="text-4xl font-extrabold">{faculty.name}</h1>
             <p className="text-2xl font-light">{faculty.designation}</p>
             <p>{faculty.department}</p>
             <p>{faculty.email}</p>
             <p>{faculty.phone}</p>
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-              {faculty.linkedin_url && <a href={faculty.linkedin_url} target="_blank" rel="noreferrer" className="underline">LinkedIn</a>}
-              {faculty.github_url && <a href={faculty.github_url} target="_blank" rel="noreferrer" className="underline">GitHub</a>}
-              {faculty.google_scholar_url && <a href={faculty.google_scholar_url} target="_blank" rel="noreferrer" className="underline">Google Scholar</a>}
-              {faculty.website_url && <a href={faculty.website_url} target="_blank" rel="noreferrer" className="underline">Website</a>}
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              {faculty.linkedin_url && (
+                <IconLink href={faculty.linkedin_url} label="LinkedIn">
+                  <LinkedInIcon />
+                </IconLink>
+              )}
+              {faculty.github_url && (
+                <IconLink href={faculty.github_url} label="GitHub">
+                  <GithubIcon />
+                </IconLink>
+              )}
+              {faculty.google_scholar_url && (
+                <IconLink href={faculty.google_scholar_url} label="Google Scholar">
+                  <ScholarIcon />
+                </IconLink>
+              )}
+              {faculty.website_url && (
+                <IconLink href={faculty.website_url} label="Website">
+                  <GlobeIcon />
+                </IconLink>
+              )}
             </div>
             {canManage && approvalBadge(Boolean(faculty.is_approved))}
           </div>
@@ -472,6 +553,7 @@ export default function FacultyProfile({
                     isEditing={editKey === `qualifications:${q.id}`}
                     onEdit={() => startEdit("qualifications", q)}
                     onSave={() => saveEdit("qualifications", q.id)}
+                    onDelete={() => deleteRow("qualifications", q.id)}
                     busy={busy}
                   />
                 </div>
@@ -486,12 +568,11 @@ export default function FacultyProfile({
         {canManage && openForm === "publications" && (
           <div className="grid grid-cols-1 gap-2 rounded border border-slate-200 bg-blue-50 p-3 md:grid-cols-2">
             <input className="rounded border px-2 py-1 md:col-span-2" placeholder="Title" onChange={(e) => setEntryForm((s) => ({ ...s, title: e.target.value }))} />
-            <input className="rounded border px-2 py-1" placeholder="Authors" onChange={(e) => setEntryForm((s) => ({ ...s, authors: e.target.value }))} />
-            <input className="rounded border px-2 py-1" placeholder="Journal" onChange={(e) => setEntryForm((s) => ({ ...s, journal: e.target.value }))} />
+            <input className="rounded border px-2 py-1" placeholder="Authors (optional)" onChange={(e) => setEntryForm((s) => ({ ...s, authors: e.target.value }))} />
+            <input className="rounded border px-2 py-1" placeholder="Journal / Publisher (optional)" onChange={(e) => setEntryForm((s) => ({ ...s, journal: e.target.value }))} />
             <input className="rounded border px-2 py-1" type="number" placeholder="Year" onChange={(e) => setEntryForm((s) => ({ ...s, year: Number(e.target.value) }))} />
             <select className={textInputClass()} onChange={(e) => setEntryForm((s) => ({ ...s, type: e.target.value }))}>
               <option value="journal">Journal</option>
-              <option value="conference">Conference</option>
               <option value="book_chapter">Book Chapter</option>
             </select>
             <input className="rounded border px-2 py-1" placeholder="Indexed" onChange={(e) => setEntryForm((s) => ({ ...s, indexed: e.target.value }))} />
@@ -500,7 +581,89 @@ export default function FacultyProfile({
             <button className="gold-button rounded px-3 py-1 text-sm font-semibold text-slate-900" onClick={() => submitEntry("publications")}>Save</button>
           </div>
         )}
-        <PublicationTable items={publications} showApproval={canManage} />
+        <PublicationTable items={publicationItems} showApproval={canManage} />
+        {canManage && (
+          <div className="mt-3 space-y-2">
+            {publicationItems.map((row) => (
+              <div key={`pub-manage-${row.id}`} className="rounded border border-slate-200 bg-slate-50 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold text-slate-800">{row.title}</p>
+                  <div className="flex items-center gap-2">
+                    {approvalBadge(Boolean(row.is_approved))}
+                    <ItemActions
+                      canManage={canManage}
+                      isEditing={editKey === `publications:${row.id}`}
+                      onEdit={() => startEdit("publications", row)}
+                      onSave={() => saveEdit("publications", row.id)}
+                      onDelete={() => deleteRow("publications", row.id)}
+                      busy={busy}
+                    />
+                  </div>
+                </div>
+                {editKey === `publications:${row.id}` && (
+                  <div className="mt-2 grid gap-2 md:grid-cols-2">
+                    <input className={`${textInputClass()} md:col-span-2`} value={entryEdit.title || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, title: e.target.value }))} />
+                    <input className={textInputClass()} value={entryEdit.authors || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, authors: e.target.value }))} placeholder="Authors" />
+                    <input className={textInputClass()} value={entryEdit.journal || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, journal: e.target.value }))} placeholder="Journal" />
+                    <input className={textInputClass()} type="number" value={entryEdit.year || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, year: Number(e.target.value) }))} />
+                    <input className={textInputClass()} value={entryEdit.indexed || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, indexed: e.target.value }))} placeholder="Indexed" />
+                    <input className={textInputClass()} value={entryEdit.reference_url || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, reference_url: e.target.value }))} placeholder="Reference URL" />
+                    <input className={textInputClass()} value={entryEdit.pdf_url || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, pdf_url: e.target.value }))} placeholder="PDF URL" />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </Section>
+
+      <Section id="conferences" title="Conferences" canManage={canManage} onAddClick={() => openAddForm("conferences")}>
+        {canManage && openForm === "conferences" && (
+          <div className="grid grid-cols-1 gap-2 rounded border border-slate-200 bg-blue-50 p-3 md:grid-cols-2">
+            <input className="rounded border px-2 py-1 md:col-span-2" placeholder="Paper Title" onChange={(e) => setEntryForm((s) => ({ ...s, title: e.target.value }))} />
+            <input className="rounded border px-2 py-1" placeholder="Authors (optional)" onChange={(e) => setEntryForm((s) => ({ ...s, authors: e.target.value }))} />
+            <input className="rounded border px-2 py-1" placeholder="Conference Name" onChange={(e) => setEntryForm((s) => ({ ...s, journal: e.target.value }))} />
+            <input className="rounded border px-2 py-1" type="number" placeholder="Year" onChange={(e) => setEntryForm((s) => ({ ...s, year: Number(e.target.value) }))} />
+            <input className="rounded border px-2 py-1" placeholder="Indexed" onChange={(e) => setEntryForm((s) => ({ ...s, indexed: e.target.value }))} />
+            <input className="rounded border px-2 py-1" placeholder="Reference URL (optional)" onChange={(e) => setEntryForm((s) => ({ ...s, reference_url: e.target.value }))} />
+            <input className="rounded border px-2 py-1" placeholder="PDF URL (optional)" onChange={(e) => setEntryForm((s) => ({ ...s, pdf_url: e.target.value }))} />
+            <button className="gold-button rounded px-3 py-1 text-sm font-semibold text-slate-900" onClick={() => submitEntry("publications", { ...entryForm, type: "conference" })}>Save</button>
+          </div>
+        )}
+        <PublicationTable items={conferenceItems} showApproval={canManage} />
+        {canManage && (
+          <div className="mt-3 space-y-2">
+            {conferenceItems.map((row) => (
+              <div key={`conf-manage-${row.id}`} className="rounded border border-slate-200 bg-slate-50 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold text-slate-800">{row.title}</p>
+                  <div className="flex items-center gap-2">
+                    {approvalBadge(Boolean(row.is_approved))}
+                    <ItemActions
+                      canManage={canManage}
+                      isEditing={editKey === `publications:${row.id}`}
+                      onEdit={() => startEdit("publications", row)}
+                      onSave={() => saveEdit("publications", row.id)}
+                      onDelete={() => deleteRow("publications", row.id)}
+                      busy={busy}
+                    />
+                  </div>
+                </div>
+                {editKey === `publications:${row.id}` && (
+                  <div className="mt-2 grid gap-2 md:grid-cols-2">
+                    <input className={`${textInputClass()} md:col-span-2`} value={entryEdit.title || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, title: e.target.value }))} />
+                    <input className={textInputClass()} value={entryEdit.authors || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, authors: e.target.value }))} placeholder="Authors" />
+                    <input className={textInputClass()} value={entryEdit.journal || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, journal: e.target.value }))} placeholder="Conference Name" />
+                    <input className={textInputClass()} type="number" value={entryEdit.year || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, year: Number(e.target.value) }))} />
+                    <input className={textInputClass()} value={entryEdit.indexed || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, indexed: e.target.value }))} placeholder="Indexed" />
+                    <input className={textInputClass()} value={entryEdit.reference_url || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, reference_url: e.target.value }))} placeholder="Reference URL" />
+                    <input className={textInputClass()} value={entryEdit.pdf_url || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, pdf_url: e.target.value }))} placeholder="PDF URL" />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </Section>
 
       <Section id="fdp" title="Teaching Engagements" canManage={canManage} onAddClick={() => openAddForm("fdp")}>
@@ -518,6 +681,36 @@ export default function FacultyProfile({
           </div>
         )}
         <FdpTable items={fdp} showApproval={canManage} />
+        {canManage && (
+          <div className="mt-3 space-y-2">
+            {fdp.map((row) => (
+              <div key={`fdp-manage-${row.id}`} className="rounded border border-slate-200 bg-slate-50 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold text-slate-800">{row.title}</p>
+                  <div className="flex items-center gap-2">
+                    {approvalBadge(Boolean(row.is_approved))}
+                    <ItemActions
+                      canManage={canManage}
+                      isEditing={editKey === `fdp:${row.id}`}
+                      onEdit={() => startEdit("fdp", row)}
+                      onSave={() => saveEdit("fdp", row.id)}
+                      onDelete={() => deleteRow("fdp", row.id)}
+                      busy={busy}
+                    />
+                  </div>
+                </div>
+                {editKey === `fdp:${row.id}` && (
+                  <div className="mt-2 grid gap-2 md:grid-cols-2">
+                    <input className={`${textInputClass()} md:col-span-2`} value={entryEdit.title || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, title: e.target.value }))} />
+                    <input className={textInputClass()} value={entryEdit.role || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, role: e.target.value }))} placeholder="Role" />
+                    <input className={textInputClass()} value={entryEdit.duration || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, duration: e.target.value }))} placeholder="Duration" />
+                    <input className={`${textInputClass()} md:col-span-2`} value={entryEdit.organized_by || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, organized_by: e.target.value }))} placeholder="Organized By" />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </Section>
 
       <Section id="projects" title="Projects" canManage={canManage} onAddClick={() => openAddForm("projects")}>
@@ -537,6 +730,39 @@ export default function FacultyProfile({
           </div>
         )}
         <ProjectTable items={projects} showApproval={canManage} />
+        {canManage && (
+          <div className="mt-3 space-y-2">
+            {projects.map((row) => (
+              <div key={`project-manage-${row.id}`} className="rounded border border-slate-200 bg-slate-50 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold text-slate-800">{row.title}</p>
+                  <div className="flex items-center gap-2">
+                    {approvalBadge(Boolean(row.is_approved))}
+                    <ItemActions
+                      canManage={canManage}
+                      isEditing={editKey === `projects:${row.id}`}
+                      onEdit={() => startEdit("projects", row)}
+                      onSave={() => saveEdit("projects", row.id)}
+                      onDelete={() => deleteRow("projects", row.id)}
+                      busy={busy}
+                    />
+                  </div>
+                </div>
+                {editKey === `projects:${row.id}` && (
+                  <div className="mt-2 grid gap-2 md:grid-cols-2">
+                    <input className={`${textInputClass()} md:col-span-2`} value={entryEdit.title || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, title: e.target.value }))} />
+                    <input className={textInputClass()} value={entryEdit.funding_agency || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, funding_agency: e.target.value }))} placeholder="Funding Agency" />
+                    <input className={textInputClass()} type="number" value={entryEdit.amount || 0} onChange={(e) => setEntryEdit((s) => ({ ...s, amount: Number(e.target.value) }))} placeholder="Amount" />
+                    <input className={textInputClass()} type="number" value={entryEdit.year || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, year: Number(e.target.value) }))} placeholder="Year" />
+                    <input className={textInputClass()} value={entryEdit.status || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, status: e.target.value }))} placeholder="Status" />
+                    <input className={textInputClass()} value={entryEdit.reference_url || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, reference_url: e.target.value }))} placeholder="Reference URL" />
+                    <input className={textInputClass()} value={entryEdit.pdf_url || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, pdf_url: e.target.value }))} placeholder="PDF URL" />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </Section>
 
       <Section id="patents" title="Patents" canManage={canManage} onAddClick={() => openAddForm("patents")}>
@@ -567,6 +793,7 @@ export default function FacultyProfile({
                     isEditing={editKey === `patents:${p.id}`}
                     onEdit={() => startEdit("patents", p)}
                     onSave={() => saveEdit("patents", p.id)}
+                    onDelete={() => deleteRow("patents", p.id)}
                     busy={busy}
                   />
                 </div>
@@ -585,9 +812,9 @@ export default function FacultyProfile({
                   <input className={textInputClass()} value={entryEdit.pdf_url || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, pdf_url: e.target.value }))} placeholder="PDF URL" />
                 </div>
               )}
-              <div className="mt-2 flex flex-wrap gap-3 text-xs">
-                {p.reference_url && <a href={p.reference_url} target="_blank" rel="noreferrer" className="text-blue-700 underline">Reference Link</a>}
-                {p.pdf_url && <a href={p.pdf_url} target="_blank" rel="noreferrer" className="text-blue-700 underline">PDF Link</a>}
+              <div className="mt-2 flex flex-wrap gap-3 text-sm">
+                {p.reference_url && <a href={p.reference_url} target="_blank" rel="noreferrer" className="text-sm font-semibold text-blue-700 underline">Reference Link</a>}
+                {p.pdf_url && <a href={p.pdf_url} target="_blank" rel="noreferrer" className="text-sm font-semibold text-blue-700 underline">PDF Link</a>}
               </div>
             </li>
           ))}
@@ -619,6 +846,7 @@ export default function FacultyProfile({
                     isEditing={editKey === `books:${book.id}`}
                     onEdit={() => startEdit("books", book)}
                     onSave={() => saveEdit("books", book.id)}
+                    onDelete={() => deleteRow("books", book.id)}
                     busy={busy}
                   />
                 </div>
@@ -633,9 +861,9 @@ export default function FacultyProfile({
                   <input className={textInputClass()} value={entryEdit.pdf_url || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, pdf_url: e.target.value }))} placeholder="PDF URL" />
                 </div>
               )}
-              <div className="mt-2 flex flex-wrap gap-3 text-xs">
-                {book.reference_url && <a href={book.reference_url} target="_blank" rel="noreferrer" className="text-blue-700 underline">Reference Link</a>}
-                {book.pdf_url && <a href={book.pdf_url} target="_blank" rel="noreferrer" className="text-blue-700 underline">PDF Link</a>}
+              <div className="mt-2 flex flex-wrap gap-3 text-sm">
+                {book.reference_url && <a href={book.reference_url} target="_blank" rel="noreferrer" className="text-sm font-semibold text-blue-700 underline">Reference Link</a>}
+                {book.pdf_url && <a href={book.pdf_url} target="_blank" rel="noreferrer" className="text-sm font-semibold text-blue-700 underline">PDF Link</a>}
               </div>
             </li>
           ))}
@@ -671,6 +899,7 @@ export default function FacultyProfile({
                     isEditing={editKey === `collaborations:${c.id}`}
                     onEdit={() => startEdit("collaborations", c)}
                     onSave={() => saveEdit("collaborations", c.id)}
+                    onDelete={() => deleteRow("collaborations", c.id)}
                     busy={busy}
                   />
                 </div>
@@ -705,17 +934,36 @@ export default function FacultyProfile({
           </div>
         )}
         <ul className="space-y-2">
-          {awards.map((a) => (
+          {awardItems.map((a) => (
             <li key={a.id} className="rounded border border-slate-200 bg-slate-50 p-3">
               <div className="flex items-center justify-between gap-2">
                 <span><span className="font-semibold">{a.title}</span> ({a.year}) - {a.description}</span>
-                {canManage && approvalBadge(Boolean(a.is_approved))}
+                <div className="flex items-center gap-2">
+                  {canManage && approvalBadge(Boolean(a.is_approved))}
+                  <ItemActions
+                    canManage={canManage}
+                    isEditing={editKey === `awards:${a.id}`}
+                    onEdit={() => startEdit("awards", a)}
+                    onSave={() => saveEdit("awards", a.id)}
+                    onDelete={() => deleteRow("awards", a.id)}
+                    busy={busy}
+                  />
+                </div>
               </div>
+              {editKey === `awards:${a.id}` && (
+                <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2">
+                  <input className={textInputClass()} value={entryEdit.title || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, title: e.target.value }))} />
+                  <input className={textInputClass()} type="number" value={entryEdit.year || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, year: Number(e.target.value) }))} />
+                  <textarea className="rounded border px-2 py-1 md:col-span-2" rows={2} value={entryEdit.description || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, description: e.target.value }))} />
+                </div>
+              )}
             </li>
           ))}
-          {!awards.length && <li className="text-slate-500">No awards entries.</li>}
+          {!awardItems.length && <li className="text-slate-500">No awards entries.</li>}
         </ul>
+      </Section>
 
+      <Section id="honors" title="Honors and Recognition" canManage={canManage} onAddClick={() => openAddForm("awards_honors")}>
         <div id="awards-honors" className="mt-4 space-y-2 scroll-mt-24 rounded border border-slate-200 bg-slate-50 p-3">
           <div className="flex items-center justify-between gap-2">
             <h3 className="text-lg font-semibold text-slate-800">Honors</h3>
@@ -735,7 +983,7 @@ export default function FacultyProfile({
                 <p className="text-sm"><span className="font-semibold">{item.title || "Honor"}</span> ({item.year || "-"}) - {item.honors}</p>
                 <div className="flex items-center gap-2">
                   {canManage && approvalBadge(Boolean(item.is_approved))}
-                  <ItemActions canManage={canManage} isEditing={editKey === `awards:${item.id}`} onEdit={() => startEdit("awards", item)} onSave={() => saveEdit("awards", item.id)} busy={busy} />
+                  <ItemActions canManage={canManage} isEditing={editKey === `awards:${item.id}`} onEdit={() => startEdit("awards", item)} onSave={() => saveEdit("awards", item.id)} onDelete={() => deleteRow("awards", item.id)} busy={busy} />
                 </div>
               </div>
               {editKey === `awards:${item.id}` && (
@@ -769,7 +1017,7 @@ export default function FacultyProfile({
                 <p className="text-sm"><span className="font-semibold">{item.title || "Membership"}</span> ({item.year || "-"}) - {item.membership}</p>
                 <div className="flex items-center gap-2">
                   {canManage && approvalBadge(Boolean(item.is_approved))}
-                  <ItemActions canManage={canManage} isEditing={editKey === `awards:${item.id}`} onEdit={() => startEdit("awards", item)} onSave={() => saveEdit("awards", item.id)} busy={busy} />
+                  <ItemActions canManage={canManage} isEditing={editKey === `awards:${item.id}`} onEdit={() => startEdit("awards", item)} onSave={() => saveEdit("awards", item.id)} onDelete={() => deleteRow("awards", item.id)} busy={busy} />
                 </div>
               </div>
               {editKey === `awards:${item.id}` && (
@@ -803,7 +1051,7 @@ export default function FacultyProfile({
                 <p className="text-sm"><span className="font-semibold">{item.title || "Contribution"}</span> ({item.year || "-"}) - {item.contributions}</p>
                 <div className="flex items-center gap-2">
                   {canManage && approvalBadge(Boolean(item.is_approved))}
-                  <ItemActions canManage={canManage} isEditing={editKey === `awards:${item.id}`} onEdit={() => startEdit("awards", item)} onSave={() => saveEdit("awards", item.id)} busy={busy} />
+                  <ItemActions canManage={canManage} isEditing={editKey === `awards:${item.id}`} onEdit={() => startEdit("awards", item)} onSave={() => saveEdit("awards", item.id)} onDelete={() => deleteRow("awards", item.id)} busy={busy} />
                 </div>
               </div>
               {editKey === `awards:${item.id}` && (
@@ -834,8 +1082,26 @@ export default function FacultyProfile({
             <li key={m.id} className="rounded border border-slate-200 bg-slate-50 p-3">
               <div className="flex items-center justify-between gap-2">
                 <span><span className="font-semibold">{m.course}</span> - {m.platform} ({m.year})</span>
-                {canManage && approvalBadge(Boolean(m.is_approved))}
+                <div className="flex items-center gap-2">
+                  {canManage && approvalBadge(Boolean(m.is_approved))}
+                  <ItemActions
+                    canManage={canManage}
+                    isEditing={editKey === `moocs:${m.id}`}
+                    onEdit={() => startEdit("moocs", m)}
+                    onSave={() => saveEdit("moocs", m.id)}
+                    onDelete={() => deleteRow("moocs", m.id)}
+                    busy={busy}
+                  />
+                </div>
               </div>
+              {editKey === `moocs:${m.id}` && (
+                <div className="mt-2 grid gap-2 md:grid-cols-2">
+                  <input className={textInputClass()} value={entryEdit.course || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, course: e.target.value }))} />
+                  <input className={textInputClass()} value={entryEdit.platform || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, platform: e.target.value }))} />
+                  <input className={textInputClass()} value={entryEdit.grade || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, grade: e.target.value }))} />
+                  <input className={textInputClass()} type="number" value={entryEdit.year || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, year: Number(e.target.value) }))} />
+                </div>
+              )}
             </li>
           ))}
           {!moocs.length && <li className="text-slate-500">No MOOC entries.</li>}
@@ -857,9 +1123,27 @@ export default function FacultyProfile({
             <li key={proof.id} className="rounded border border-slate-200 bg-slate-50 p-3">
               <div className="flex items-center justify-between gap-2">
                 <a href={proof.proof_url} target="_blank" rel="noreferrer" className="font-semibold text-slate-800 hover:text-amber-700">{proof.title}</a>
-                {canManage && approvalBadge(Boolean(proof.is_approved))}
+                <div className="flex items-center gap-2">
+                  {canManage && approvalBadge(Boolean(proof.is_approved))}
+                  <ItemActions
+                    canManage={canManage}
+                    isEditing={editKey === `research_proofs:${proof.id}`}
+                    onEdit={() => startEdit("research_proofs", proof)}
+                    onSave={() => saveEdit("research_proofs", proof.id)}
+                    onDelete={() => deleteRow("research_proofs", proof.id)}
+                    busy={busy}
+                  />
+                </div>
               </div>
               <p className="text-sm text-slate-600">{proof.description || "No description"}</p>
+              {editKey === `research_proofs:${proof.id}` && (
+                <div className="mt-2 grid gap-2 md:grid-cols-2">
+                  <input className={textInputClass()} value={entryEdit.title || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, title: e.target.value }))} />
+                  <input className={textInputClass()} type="number" value={entryEdit.year || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, year: Number(e.target.value) }))} />
+                  <input className={`${textInputClass()} md:col-span-2`} value={entryEdit.proof_url || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, proof_url: e.target.value }))} />
+                  <textarea className="rounded border px-2 py-1 md:col-span-2" rows={2} value={entryEdit.description || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, description: e.target.value }))} />
+                </div>
+              )}
             </li>
           ))}
           {!research_proofs.length && <li className="text-slate-500">No research proofs available.</li>}
@@ -899,12 +1183,30 @@ export default function FacultyProfile({
             <div key={item.id} className="rounded border border-slate-200 bg-slate-50 p-3">
               <div className="flex items-center justify-between gap-2">
                 <p className="font-semibold text-slate-800">{item.title}</p>
-                {canManage && approvalBadge(Boolean(item.is_approved))}
+                <div className="flex items-center gap-2">
+                  {canManage && approvalBadge(Boolean(item.is_approved))}
+                  <ItemActions
+                    canManage={canManage}
+                    isEditing={editKey === `miscellaneous_items:${item.id}`}
+                    onEdit={() => startEdit("miscellaneous_items", item)}
+                    onSave={() => saveEdit("miscellaneous_items", item.id)}
+                    onDelete={() => deleteRow("miscellaneous_items", item.id)}
+                    busy={busy}
+                  />
+                </div>
               </div>
               <p className="text-sm text-slate-600">{item.description || "No description"}</p>
-              <div className="mt-2 flex flex-wrap gap-3 text-xs">
-                {item.reference_url && <a href={item.reference_url} target="_blank" rel="noreferrer" className="text-blue-700 underline">Reference Link</a>}
-                {item.pdf_url && <a href={item.pdf_url} target="_blank" rel="noreferrer" className="text-blue-700 underline">PDF Link</a>}
+              {editKey === `miscellaneous_items:${item.id}` && (
+                <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2">
+                  <input className={textInputClass()} value={entryEdit.title || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, title: e.target.value }))} />
+                  <input className={textInputClass()} value={entryEdit.reference_url || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, reference_url: e.target.value }))} placeholder="Reference URL" />
+                  <input className={textInputClass()} value={entryEdit.pdf_url || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, pdf_url: e.target.value }))} placeholder="PDF URL" />
+                  <textarea className="rounded border px-2 py-1 md:col-span-2" rows={2} value={entryEdit.description || ""} onChange={(e) => setEntryEdit((s) => ({ ...s, description: e.target.value }))} />
+                </div>
+              )}
+              <div className="mt-2 flex flex-wrap gap-3 text-sm">
+                {item.reference_url && <a href={item.reference_url} target="_blank" rel="noreferrer" className="text-sm font-semibold text-blue-700 underline">Reference Link</a>}
+                {item.pdf_url && <a href={item.pdf_url} target="_blank" rel="noreferrer" className="text-sm font-semibold text-blue-700 underline">PDF Link</a>}
               </div>
               {!!Object.keys(item.custom_fields || {}).length && (
                 <div className="mt-2 grid grid-cols-1 gap-1 text-xs text-slate-700 md:grid-cols-2">

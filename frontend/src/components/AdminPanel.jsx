@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { achievementApi, adminApi } from "../api/facultyApi";
 import { useAuth } from "../context/AuthContext";
+import adminBasePhoto from "../assets/admin-base-photo.svg";
 
 function labelForRow(row) {
   return row.title || row.name || row.course || row.degree || "Untitled";
@@ -55,6 +56,7 @@ export default function AdminPanel({ initialTab = "pending" }) {
   const { token } = useAuth();
   const queryClient = useQueryClient();
   const [message, setMessage] = useState("");
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [activeTab, setActiveTab] = useState(initialTab);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [rejectDialog, setRejectDialog] = useState({
@@ -195,6 +197,11 @@ export default function AdminPanel({ initialTab = "pending" }) {
     });
   }, [facultyDirectory, filters]);
 
+  const filteredPendingEntries = useMemo(
+    () => filteredPendingGroups.flatMap((group) => group.entries.map(({ table, row }) => ({ table, id: row.id }))),
+    [filteredPendingGroups],
+  );
+
   const approveMutation = useMutation({
     mutationFn: ({ table, id }) => adminApi.approve(table, id, token),
     onSuccess: () => {
@@ -334,6 +341,39 @@ export default function AdminPanel({ initialTab = "pending" }) {
     closeRejectDialog();
   };
 
+  const actionBusy = bulkBusy || approveMutation.isPending || rejectMutation.isPending || removeDetailMutation.isPending;
+
+  const runBulkAction = async (entries, action) => {
+    const deduped = Array.from(new Map(entries.map((entry) => [`${entry.table}:${entry.id}`, entry])).values());
+    if (!deduped.length) {
+      setMessage("No pending requests found for bulk action.");
+      return;
+    }
+
+    setBulkBusy(true);
+    let success = 0;
+    let failed = 0;
+
+    for (const entry of deduped) {
+      try {
+        if (action === "approve") {
+          await adminApi.approve(entry.table, entry.id, token);
+        } else {
+          await adminApi.reject(entry.table, entry.id, token, { remark: "" });
+        }
+        success += 1;
+      } catch {
+        failed += 1;
+      }
+    }
+
+    await queryClient.invalidateQueries({ queryKey: ["pending"] });
+    await queryClient.invalidateQueries({ queryKey: ["faculty"] });
+    await queryClient.invalidateQueries({ queryKey: ["approval-history"] });
+    setBulkBusy(false);
+    setMessage(`${action === "approve" ? "Approved" : "Rejected"} ${success} request(s)${failed ? `, ${failed} failed.` : "."}`);
+  };
+
   const selectedProfileId = selectedRequest
     ? selectedRequest.table === "faculty"
       ? selectedRequest.row.id
@@ -415,6 +455,24 @@ export default function AdminPanel({ initialTab = "pending" }) {
 
       {activeTab === "pending" && (
         <section className="space-y-4">
+          {!!filteredPendingEntries.length && (
+            <div className="flex flex-wrap gap-2">
+              <button
+                className="rounded bg-emerald-600 px-3 py-2 text-sm font-semibold text-white"
+                disabled={actionBusy}
+                onClick={() => runBulkAction(filteredPendingEntries, "approve")}
+              >
+                {bulkBusy ? "Processing..." : "Accept All Filtered"}
+              </button>
+              <button
+                className="rounded bg-rose-600 px-3 py-2 text-sm font-semibold text-white"
+                disabled={actionBusy}
+                onClick={() => runBulkAction(filteredPendingEntries, "reject")}
+              >
+                {bulkBusy ? "Processing..." : "Reject All Filtered"}
+              </button>
+            </div>
+          )}
           {!filteredPendingGroups.length && <p className="text-sm text-slate-500">No pending records for selected filters.</p>}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {filteredPendingGroups.map((group) => {
@@ -423,7 +481,7 @@ export default function AdminPanel({ initialTab = "pending" }) {
                 <article key={group.facultyKey} className="glass-card rounded-xl border border-amber-300/60 bg-white/80 p-4 shadow-sm">
                   <div className="mb-3 flex items-center gap-3">
                     <img
-                      src={f?.photo_url || "https://via.placeholder.com/80x80?text=F"}
+                      src={f?.photo_url || adminBasePhoto}
                       alt={f?.name || "Faculty"}
                       className="h-14 w-14 rounded object-cover ring-2 ring-amber-300"
                     />
@@ -432,6 +490,23 @@ export default function AdminPanel({ initialTab = "pending" }) {
                       <p className="text-sm text-slate-600">{f?.designation || "No designation"}</p>
                       <p className="text-xs text-slate-500">Pending: {group.entries.length}</p>
                     </div>
+                  </div>
+
+                  <div className="mb-3 flex flex-wrap gap-2">
+                    <button
+                      className="rounded bg-emerald-600 px-3 py-1 text-xs font-semibold text-white"
+                      disabled={actionBusy}
+                      onClick={() => runBulkAction(group.entries.map(({ table, row }) => ({ table, id: row.id })), "approve")}
+                    >
+                      Accept All
+                    </button>
+                    <button
+                      className="rounded bg-rose-600 px-3 py-1 text-xs font-semibold text-white"
+                      disabled={actionBusy}
+                      onClick={() => runBulkAction(group.entries.map(({ table, row }) => ({ table, id: row.id })), "reject")}
+                    >
+                      Reject All
+                    </button>
                   </div>
 
                   <div className="space-y-2">
@@ -446,7 +521,7 @@ export default function AdminPanel({ initialTab = "pending" }) {
                         <div className="mt-2 flex flex-wrap gap-2">
                           <button
                             className="rounded bg-emerald-600 px-3 py-1 text-xs font-semibold text-white"
-                            disabled={approveMutation.isPending || rejectMutation.isPending || removeDetailMutation.isPending}
+                            disabled={actionBusy}
                             onClick={(event) => {
                               event.stopPropagation();
                               approveMutation.mutate({ table, id: row.id });
@@ -456,7 +531,7 @@ export default function AdminPanel({ initialTab = "pending" }) {
                           </button>
                           <button
                             className="rounded bg-rose-600 px-3 py-1 text-xs font-semibold text-white"
-                            disabled={approveMutation.isPending || rejectMutation.isPending || removeDetailMutation.isPending}
+                            disabled={actionBusy}
                             onClick={(event) => {
                               event.stopPropagation();
                               openRejectDialog({ table, id: row.id });
@@ -466,7 +541,7 @@ export default function AdminPanel({ initialTab = "pending" }) {
                           </button>
                           <button
                             className="rounded border border-slate-400 px-3 py-1 text-xs font-semibold text-slate-700"
-                            disabled={approveMutation.isPending || rejectMutation.isPending || removeDetailMutation.isPending}
+                            disabled={actionBusy}
                             onClick={(event) => {
                               event.stopPropagation();
                               removeDetailMutation.mutate({ table, id: row.id });
@@ -509,7 +584,7 @@ export default function AdminPanel({ initialTab = "pending" }) {
             {filteredFaculty.map((f) => (
               <div key={f.id} className="flex items-center justify-between rounded border border-slate-200 bg-slate-50 p-3">
                 <div className="flex items-center gap-3">
-                  <img src={f.photo_url || "https://via.placeholder.com/60x60?text=F"} alt={f.name} className="h-12 w-12 rounded object-cover" />
+                  <img src={f.photo_url || adminBasePhoto} alt={f.name} className="h-12 w-12 rounded object-cover" />
                   <div>
                     <p className="font-semibold text-slate-800">{f.name}</p>
                     <p className="text-xs text-slate-600">{f.department}</p>
@@ -637,7 +712,7 @@ export default function AdminPanel({ initialTab = "pending" }) {
                   </div>
                 </div>
                 {item.summary && <p className="mt-2 text-sm text-slate-600">{item.summary}</p>}
-                <a href={item.media_url} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs font-semibold text-blue-700 underline">
+                <a href={item.media_url} target="_blank" rel="noreferrer" className="mt-2 inline-block text-sm font-semibold text-blue-700 underline">
                   Open Media
                 </a>
               </div>
@@ -696,7 +771,7 @@ export default function AdminPanel({ initialTab = "pending" }) {
               )}
               <button
                 className="rounded bg-emerald-600 px-3 py-2 text-sm font-semibold text-white"
-                disabled={approveMutation.isPending || rejectMutation.isPending || removeDetailMutation.isPending}
+                disabled={actionBusy}
                 onClick={() => {
                   approveMutation.mutate({ table: selectedRequest.table, id: selectedRequest.row.id });
                   closeDetails();
@@ -706,7 +781,7 @@ export default function AdminPanel({ initialTab = "pending" }) {
               </button>
               <button
                 className="rounded bg-rose-600 px-3 py-2 text-sm font-semibold text-white"
-                disabled={approveMutation.isPending || rejectMutation.isPending || removeDetailMutation.isPending}
+                disabled={actionBusy}
                 onClick={() => {
                   openRejectDialog({ table: selectedRequest.table, id: selectedRequest.row.id, closeDetailsAfter: true });
                 }}
@@ -715,7 +790,7 @@ export default function AdminPanel({ initialTab = "pending" }) {
               </button>
               <button
                 className="rounded border border-slate-400 px-3 py-2 text-sm font-semibold text-slate-700"
-                disabled={approveMutation.isPending || rejectMutation.isPending || removeDetailMutation.isPending}
+                disabled={actionBusy}
                 onClick={() => {
                   removeDetailMutation.mutate({ table: selectedRequest.table, id: selectedRequest.row.id });
                   closeDetails();

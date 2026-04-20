@@ -49,6 +49,17 @@ function normalizeEntryPayload(body = {}) {
   return payload;
 }
 
+function normalizeFacultyPayload(body = {}) {
+  const payload = { ...body };
+  const urlKeys = ["photo_url", "cv_url", "linkedin_url", "github_url", "google_scholar_url", "website_url"];
+  for (const key of urlKeys) {
+    if (key in payload) {
+      payload[key] = normalizeUrl(payload[key]);
+    }
+  }
+  return payload;
+}
+
 export default function FacultyProfilePage() {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
@@ -150,13 +161,23 @@ export default function FacultyProfilePage() {
   });
 
   const updateFaculty = useMutation({
-    mutationFn: (body) => facultyApi.update(id, body, token),
+    mutationFn: (body) => facultyApi.update(id, normalizeFacultyPayload(body), token),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["faculty", id] });
       queryClient.invalidateQueries({ queryKey: ["faculty"] });
       setMessage("Profile updated. It will be visible to viewers after admin approval.");
     },
     onError: (err) => setMessage(err.message || "Unable to update profile."),
+  });
+
+  const deleteEntry = useMutation({
+    mutationFn: ({ table, rowId }) => entryApi.remove(table, rowId, token),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["faculty", id] });
+      queryClient.invalidateQueries({ queryKey: ["faculty"] });
+      setMessage("Deleted successfully.");
+    },
+    onError: (err) => setMessage(err.message || "Unable to delete entry."),
   });
 
   const handleCreateEntry = async (table, body) => {
@@ -181,6 +202,14 @@ export default function FacultyProfilePage() {
       return;
     }
     await updateEntry.mutateAsync({ table, rowId, body });
+  };
+
+  const handleDeleteEntry = async (table, rowId) => {
+    if (!canManage) {
+      setMessage("You do not have permission to edit this profile. Please login with the correct faculty/admin account.");
+      return;
+    }
+    await deleteEntry.mutateAsync({ table, rowId });
   };
 
   const handleUploadPhoto = async (imageBase64, fileName) => {
@@ -319,11 +348,12 @@ export default function FacultyProfilePage() {
         canManage={canManage}
         onCreateEntry={handleCreateEntry}
         onUpdateEntry={handleUpdateEntry}
+        onDeleteEntry={handleDeleteEntry}
         onUpdateFaculty={handleUpdateFaculty}
         onUploadPhoto={handleUploadPhoto}
         message={message}
         requestUpdates={requestUpdates}
-        busy={createEntry.isPending || updateEntry.isPending || updateFaculty.isPending}
+        busy={createEntry.isPending || updateEntry.isPending || updateFaculty.isPending || deleteEntry.isPending}
       />
     </DashboardLayout>
   );
