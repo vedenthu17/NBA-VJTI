@@ -55,20 +55,20 @@ function SideMenuItem({ item, isExpanded, onToggle }) {
           type="button"
           onClick={() => onToggle(item.key)}
           aria-expanded={isExpanded}
-          className="flex w-full items-center justify-between text-left text-2xl font-normal text-slate-800 transition hover:pl-2 hover:text-blue-700"
+          className="flex w-full items-center justify-between text-left text-lg font-semibold text-slate-800 transition hover:pl-2 hover:text-blue-700"
         >
           <span>{item.key}</span>
           <span className="ml-3 text-base text-slate-500">{isExpanded ? "-" : "+"}</span>
         </button>
       ) : (
-        <a href={item.to} className="block text-2xl font-normal text-slate-800 transition hover:pl-2 hover:text-blue-700">
+        <a href={item.to} className="block text-lg font-semibold text-slate-800 transition hover:pl-2 hover:text-blue-700">
           {item.key}
         </a>
       )}
       {hasChildren && isExpanded && (
         <div className="mt-2 space-y-1 pl-1">
           {item.children.map((sub) => (
-            <a key={sub.key} href={sub.to} className="block text-lg font-normal text-slate-500 transition hover:text-blue-700">
+            <a key={sub.key} href={sub.to} className="block text-sm font-semibold text-slate-500 transition hover:text-blue-700">
               {sub.key}
             </a>
           ))}
@@ -94,9 +94,9 @@ export default function DashboardLayout({ children }) {
   };
 
   return (
-    <section className="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-4 py-8 md:grid-cols-[320px_1fr] md:px-8">
-      <aside className="p-2 md:sticky md:top-20 md:h-[calc(100vh-6rem)] md:overflow-y-auto">
-        <h2 className="mb-4 border-b border-slate-300 pb-3 text-5xl font-light text-slate-800">Profile Sections</h2>
+    <section className="mx-auto grid max-w-7xl grid-cols-1 gap-6 px-4 py-8 md:grid-cols-[300px_1fr] md:px-8">
+      <aside className="glass-card rounded-2xl p-4 md:sticky md:top-24 md:h-[calc(100vh-7rem)] md:overflow-y-auto">
+        <h2 className="mb-4 border-b border-slate-300 pb-3 text-2xl font-bold text-slate-800">Profile Sections</h2>
         <nav className="space-y-2">
           {sideSections.map((item) => (
             <SideMenuItem
@@ -108,7 +108,7 @@ export default function DashboardLayout({ children }) {
           ))}
         </nav>
       </aside>
-      <div className="min-w-0 border-l border-slate-300 pl-6 md:pl-10">{children ?? <Outlet />}</div>
+      <div className="min-w-0 border-l border-slate-300 pl-5 md:pl-8">{children ?? <Outlet />}</div>
     </section>
   );
 }

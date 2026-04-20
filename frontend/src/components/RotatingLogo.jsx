@@ -15,12 +15,12 @@ export default function RotatingLogo() {
   }, []);
 
   return (
-  <div className="-ml-4 flex justify-start">
-    <img
-      src={logos[currentLogo]}
-      alt="VJTI"
-      className="h-20 w-auto transition-opacity duration-500"
-    />
-  </div>
-);
+    <div className="flex justify-start">
+      <img
+        src={logos[currentLogo]}
+        alt="VJTI"
+        className="h-14 w-auto transition-opacity duration-500 md:h-16"
+      />
+    </div>
+  );
 }

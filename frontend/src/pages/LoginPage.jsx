@@ -66,120 +66,138 @@ export default function LoginPage() {
   };
 
   return (
-    <section className="relative overflow-hidden px-4 py-14 md:px-8">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(255,201,77,0.35),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(56,189,248,0.28),transparent_38%),radial-gradient(circle_at_50%_80%,rgba(255,255,255,0.45),transparent_45%)]" />
-      <div className="smooth-fade glass-card mx-auto max-w-2xl rounded-2xl border border-white/40 p-8 shadow-[0_20px_60px_rgba(15,23,42,0.16)] backdrop-blur-xl">
-        <p className="inline-flex rounded-full border border-amber-500/40 bg-amber-200/60 px-4 py-1 text-xs uppercase tracking-[0.2em] text-slate-800">
-          Start Here
-        </p>
-        <h1 className="mt-3 text-4xl font-black text-slate-900">Login or Create Account</h1>
-        <p className="mt-2 text-sm text-slate-700">
-          Select role, sign in, or create a new admin/faculty account. You can also continue as guest.
-        </p>
+    <section className="px-4 py-12 md:px-8 md:py-16">
+      <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[1fr_1.25fr]">
+        <aside className="campus-hero rounded-2xl p-7 md:p-8">
+          <p className="campus-kicker">Institution Access</p>
+          <h1 className="mt-4 text-3xl font-bold leading-tight text-white md:text-4xl">Login and Account Management</h1>
+          <p className="mt-4 text-sm leading-relaxed text-slate-100 md:text-base">
+            Use this secure portal to maintain faculty records, submit updates, and monitor NBA data approval workflows.
+          </p>
+          <div className="mt-6 space-y-3 text-sm text-slate-100">
+            <p>1. Faculty can manage profile, publications, projects, and achievements.</p>
+            <p>2. Admin can review requests and publish verified information.</p>
+            <p>3. Viewers can access approved profiles and public updates.</p>
+          </div>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link to="/faculty" className="rounded-lg border border-white/60 px-4 py-2 text-xs font-bold uppercase tracking-wide text-white hover:bg-white/10">
+              Open Faculty Directory
+            </Link>
+            <Link to="/" className="rounded-lg bg-[#9d2235] px-4 py-2 text-xs font-bold uppercase tracking-wide text-slate-900 hover:bg-[#c3475b]">
+              Back to Home
+            </Link>
+          </div>
+        </aside>
 
-        <div className="mt-6 flex gap-2 rounded-xl border border-slate-300/50 bg-white/40 p-1">
-          <button
-            type="button"
-            onClick={() => setMode("login")}
-            className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition ${
-              mode === "login" ? "bg-amber-400 text-slate-900" : "text-slate-700 hover:bg-white/70"
-            }`}
-          >
-            Login
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode("signup")}
-            className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition ${
-              mode === "signup" ? "bg-amber-400 text-slate-900" : "text-slate-700 hover:bg-white/70"
-            }`}
-          >
-            Create Account
-          </button>
-        </div>
+        <div className="glass-card rounded-2xl p-6 md:p-8">
+          <p className="campus-kicker">Portal Authentication</p>
+          <h2 className="mt-2 text-3xl font-bold">Login or Create Account</h2>
+          <p className="mt-2 text-sm text-slate-600">Choose your mode and continue with your faculty or admin credentials.</p>
 
-        {mode === "login" ? (
-          <form className="mt-6 space-y-4" onSubmit={loginForm.handleSubmit(onLogin)}>
-            <label className="block text-sm font-semibold text-slate-800">
-              Email
-              <input className="mt-1 w-full rounded-lg border border-slate-300 bg-white/80 px-3 py-2" {...loginForm.register("email")} />
-              {loginForm.formState.errors.email && <span className="text-xs text-rose-700">{loginForm.formState.errors.email.message}</span>}
-            </label>
-            <label className="block text-sm font-semibold text-slate-800">
-              Password
-              <input type="password" className="mt-1 w-full rounded-lg border border-slate-300 bg-white/80 px-3 py-2" {...loginForm.register("password")} />
-              {loginForm.formState.errors.password && <span className="text-xs text-rose-700">{loginForm.formState.errors.password.message}</span>}
-            </label>
-            {loginForm.formState.errors.root && <p className="text-sm text-rose-700">{loginForm.formState.errors.root.message}</p>}
+          <div className="mt-6 flex gap-2 rounded-xl border border-slate-300/70 bg-white/70 p-1">
             <button
-              disabled={loginForm.formState.isSubmitting}
-              className="w-full rounded-lg bg-amber-400 px-4 py-2 font-semibold text-slate-900 transition hover:bg-amber-300"
+              type="button"
+              onClick={() => setMode("login")}
+              className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition ${
+                mode === "login" ? "bg-[#9d2235] text-white" : "text-slate-700 hover:bg-slate-100"
+              }`}
             >
-              {loginForm.formState.isSubmitting ? "Signing in..." : "Sign In"}
+              Login
             </button>
-          </form>
-        ) : (
-          <form className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2" onSubmit={signupForm.handleSubmit(onSignup)}>
-            <label className="text-sm font-semibold text-slate-800 md:col-span-2">
-              Full Name
-              <input className="mt-1 w-full rounded-lg border border-slate-300 bg-white/80 px-3 py-2" {...signupForm.register("name")} />
-            </label>
-            <label className="text-sm font-semibold text-slate-800">
-              Email
-              <input className="mt-1 w-full rounded-lg border border-slate-300 bg-white/80 px-3 py-2" {...signupForm.register("email")} />
-            </label>
-            <label className="text-sm font-semibold text-slate-800">
-              Password
-              <input type="password" className="mt-1 w-full rounded-lg border border-slate-300 bg-white/80 px-3 py-2" {...signupForm.register("password")} />
-            </label>
-            <label className="text-sm font-semibold text-slate-800">
-              Account Type
-              <select className="mt-1 w-full rounded-lg border border-slate-300 bg-white/80 px-3 py-2" {...signupForm.register("role")}>
-                <option value="faculty">Faculty</option>
-                <option value="admin">Admin</option>
-              </select>
-            </label>
-            <label className="text-sm font-semibold text-slate-800">
-              Department
-              <input className="mt-1 w-full rounded-lg border border-slate-300 bg-white/80 px-3 py-2" {...signupForm.register("department")} />
-            </label>
-            <label className="text-sm font-semibold text-slate-800">
-              Designation
-              <input className="mt-1 w-full rounded-lg border border-slate-300 bg-white/80 px-3 py-2" {...signupForm.register("designation")} />
-            </label>
-            <label className="text-sm font-semibold text-slate-800">
-              Phone
-              <input className="mt-1 w-full rounded-lg border border-slate-300 bg-white/80 px-3 py-2" {...signupForm.register("phone")} />
-            </label>
-            {signupForm.watch("role") === "admin" && (
-              <label className="text-sm font-semibold text-slate-800 md:col-span-2">
-                Admin Signup Code
-                <input
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white/80 px-3 py-2"
-                  {...signupForm.register("admin_signup_code")}
-                />
-                <span className="mt-1 block text-xs font-normal text-slate-600">
-                  Must match ADMIN_SIGNUP_CODE configured in backend/.env.
-                </span>
+            <button
+              type="button"
+              onClick={() => setMode("signup")}
+              className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition ${
+                mode === "signup" ? "bg-[#9d2235] text-white" : "text-slate-700 hover:bg-slate-100"
+              }`}
+            >
+              Create Account
+            </button>
+          </div>
+
+          {mode === "login" ? (
+            <form className="mt-6 space-y-4" onSubmit={loginForm.handleSubmit(onLogin)}>
+              <label className="block text-sm font-semibold text-slate-800">
+                Email
+                <input className="liquid-control mt-1 w-full rounded-lg px-3 py-2" {...loginForm.register("email")} />
+                {loginForm.formState.errors.email && <span className="text-xs text-rose-700">{loginForm.formState.errors.email.message}</span>}
               </label>
-            )}
-            {signupForm.formState.errors.root && <p className="text-sm text-rose-700 md:col-span-2">{signupForm.formState.errors.root.message}</p>}
-            <button
-              disabled={signupForm.formState.isSubmitting}
-              className="md:col-span-2 w-full rounded-lg bg-slate-900 px-4 py-2 font-semibold text-white transition hover:-translate-y-0.5 hover:bg-slate-800"
-            >
-              {signupForm.formState.isSubmitting ? "Creating account..." : "Create Account"}
-            </button>
-          </form>
-        )}
+              <label className="block text-sm font-semibold text-slate-800">
+                Password
+                <input type="password" className="liquid-control mt-1 w-full rounded-lg px-3 py-2" {...loginForm.register("password")} />
+                {loginForm.formState.errors.password && <span className="text-xs text-rose-700">{loginForm.formState.errors.password.message}</span>}
+              </label>
+              {loginForm.formState.errors.root && <p className="text-sm text-rose-700">{loginForm.formState.errors.root.message}</p>}
+              <button
+                disabled={loginForm.formState.isSubmitting}
+                className="liquid-button w-full rounded-lg px-4 py-2 font-semibold text-white"
+              >
+                {loginForm.formState.isSubmitting ? "Signing in..." : "Sign In"}
+              </button>
+            </form>
+          ) : (
+            <form className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2" onSubmit={signupForm.handleSubmit(onSignup)}>
+              <label className="text-sm font-semibold text-slate-800 md:col-span-2">
+                Full Name
+                <input className="liquid-control mt-1 w-full rounded-lg px-3 py-2" {...signupForm.register("name")} />
+              </label>
+              <label className="text-sm font-semibold text-slate-800">
+                Email
+                <input className="liquid-control mt-1 w-full rounded-lg px-3 py-2" {...signupForm.register("email")} />
+              </label>
+              <label className="text-sm font-semibold text-slate-800">
+                Password
+                <input type="password" className="liquid-control mt-1 w-full rounded-lg px-3 py-2" {...signupForm.register("password")} />
+              </label>
+              <label className="text-sm font-semibold text-slate-800">
+                Account Type
+                <select className="liquid-control mt-1 w-full rounded-lg px-3 py-2" {...signupForm.register("role")}>
+                  <option value="faculty">Faculty</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </label>
+              <label className="text-sm font-semibold text-slate-800">
+                Department
+                <input className="liquid-control mt-1 w-full rounded-lg px-3 py-2" {...signupForm.register("department")} />
+              </label>
+              <label className="text-sm font-semibold text-slate-800">
+                Designation
+                <input className="liquid-control mt-1 w-full rounded-lg px-3 py-2" {...signupForm.register("designation")} />
+              </label>
+              <label className="text-sm font-semibold text-slate-800">
+                Phone
+                <input className="liquid-control mt-1 w-full rounded-lg px-3 py-2" {...signupForm.register("phone")} />
+              </label>
+              {signupForm.watch("role") === "admin" && (
+                <label className="text-sm font-semibold text-slate-800 md:col-span-2">
+                  Admin Signup Code
+                  <input
+                    className="liquid-control mt-1 w-full rounded-lg px-3 py-2"
+                    {...signupForm.register("admin_signup_code")}
+                  />
+                  <span className="mt-1 block text-xs font-normal text-slate-600">
+                    Must match ADMIN_SIGNUP_CODE configured in backend/.env.
+                  </span>
+                </label>
+              )}
+              {signupForm.formState.errors.root && <p className="text-sm text-rose-700 md:col-span-2">{signupForm.formState.errors.root.message}</p>}
+              <button
+                disabled={signupForm.formState.isSubmitting}
+                className="md:col-span-2 liquid-button w-full rounded-lg px-4 py-2 font-semibold text-white"
+              >
+                {signupForm.formState.isSubmitting ? "Creating account..." : "Create Account"}
+              </button>
+            </form>
+          )}
 
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Link to="/faculty" className="rounded-lg border border-slate-500/40 bg-white/60 px-4 py-2 text-sm font-semibold text-slate-800 hover:-translate-y-0.5 hover:bg-white">
-            View Faculties as Viewer
-          </Link>
-          <Link to="/" className="rounded-lg border border-slate-300 bg-white/50 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-white">
-            Go to Landing Page
-          </Link>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link to="/faculty" className="liquid-control rounded-lg px-4 py-2 text-sm font-semibold text-slate-800">
+              View Faculties as Viewer
+            </Link>
+            <Link to="/" className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+              Go to Landing Page
+            </Link>
+          </div>
         </div>
       </div>
     </section>

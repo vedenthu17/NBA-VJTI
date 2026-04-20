@@ -314,7 +314,7 @@ export default function FacultyProfile({
             className="h-52 w-52 rounded border-2 border-white/80 object-cover"
           />
           <div className="space-y-3">
-            <h1 className="text-4xl font-extrabold">{faculty.name}</h1>
+            <h1 className="text-4xl font-extrabold text-white">{faculty.name}</h1>
             <p className="text-2xl font-light">{faculty.designation}</p>
             <p>{faculty.department}</p>
             <p>{faculty.email}</p>
