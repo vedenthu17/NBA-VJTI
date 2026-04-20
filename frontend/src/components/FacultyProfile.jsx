@@ -963,24 +963,20 @@ export default function FacultyProfile({
         </ul>
       </Section>
 
-      <Section id="honors" title="Honors and Recognition" canManage={canManage} onAddClick={() => openAddForm("awards_honors")}>
-        <div id="awards-honors" className="mt-4 space-y-2 scroll-mt-24 rounded border border-slate-200 bg-slate-50 p-3">
-          <div className="flex items-center justify-between gap-2">
-            <h3 className="text-lg font-semibold text-slate-800">Honors</h3>
-            {canManage && <button className="rounded border border-blue-700 px-2 py-1 text-xs font-semibold text-blue-700" onClick={() => openAddForm("awards_honors")}>+ Add</button>}
+      <Section id="honors" title="Honors" canManage={canManage} onAddClick={() => openAddForm("awards_honors")}>
+        {canManage && openForm === "awards_honors" && (
+          <div className="grid grid-cols-1 gap-2 rounded border border-slate-200 bg-blue-50 p-3 md:grid-cols-2">
+            <input className="rounded border px-2 py-1" placeholder="Title" onChange={(e) => setEntryForm((s) => ({ ...s, title: e.target.value }))} />
+            <input className="rounded border px-2 py-1" type="number" placeholder="Year" onChange={(e) => setEntryForm((s) => ({ ...s, year: Number(e.target.value) }))} />
+            <input className="rounded border px-2 py-1 md:col-span-2" placeholder="Honor" onChange={(e) => setEntryForm((s) => ({ ...s, honors: e.target.value }))} />
+            <button className="gold-button rounded px-3 py-1 text-sm font-semibold text-slate-900 md:col-span-2" onClick={() => submitEntry("awards")}>Save Honor</button>
           </div>
-          {canManage && openForm === "awards_honors" && (
-            <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-              <input className="rounded border px-2 py-1" placeholder="Title" onChange={(e) => setEntryForm((s) => ({ ...s, title: e.target.value }))} />
-              <input className="rounded border px-2 py-1" type="number" placeholder="Year" onChange={(e) => setEntryForm((s) => ({ ...s, year: Number(e.target.value) }))} />
-              <input className="rounded border px-2 py-1 md:col-span-2" placeholder="Honor" onChange={(e) => setEntryForm((s) => ({ ...s, honors: e.target.value }))} />
-              <button className="gold-button rounded px-3 py-1 text-sm font-semibold text-slate-900 md:col-span-2" onClick={() => submitEntry("awards")}>Save Honor</button>
-            </div>
-          )}
+        )}
+        <div className="space-y-2">
           {honorItems.map((item) => (
-            <div key={`honor-${item.id}`} className="rounded border border-slate-200 bg-white p-2">
+            <div key={`honor-${item.id}`} className="rounded border border-blue-200 bg-blue-50 p-3">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-sm"><span className="font-semibold">{item.title || "Honor"}</span> ({item.year || "-"}) - {item.honors}</p>
+                <p className="text-sm"><span className="font-semibold">Honor:</span> {item.honors} <span className="text-slate-600">({item.title || "Untitled"}, {item.year || "-"})</span></p>
                 <div className="flex items-center gap-2">
                   {canManage && approvalBadge(Boolean(item.is_approved))}
                   <ItemActions canManage={canManage} isEditing={editKey === `awards:${item.id}`} onEdit={() => startEdit("awards", item)} onSave={() => saveEdit("awards", item.id)} onDelete={() => deleteRow("awards", item.id)} busy={busy} />
@@ -997,24 +993,22 @@ export default function FacultyProfile({
           ))}
           {!honorItems.length && <p className="text-sm text-slate-500">No honors added.</p>}
         </div>
+      </Section>
 
-        <div id="awards-membership" className="mt-4 space-y-2 scroll-mt-24 rounded border border-slate-200 bg-slate-50 p-3">
-          <div className="flex items-center justify-between gap-2">
-            <h3 className="text-lg font-semibold text-slate-800">Membership</h3>
-            {canManage && <button className="rounded border border-blue-700 px-2 py-1 text-xs font-semibold text-blue-700" onClick={() => openAddForm("awards_membership")}>+ Add</button>}
+      <Section id="memberships" title="Memberships" canManage={canManage} onAddClick={() => openAddForm("awards_membership")}>
+        {canManage && openForm === "awards_membership" && (
+          <div className="grid grid-cols-1 gap-2 rounded border border-slate-200 bg-blue-50 p-3 md:grid-cols-2">
+            <input className="rounded border px-2 py-1" placeholder="Title" onChange={(e) => setEntryForm((s) => ({ ...s, title: e.target.value }))} />
+            <input className="rounded border px-2 py-1" type="number" placeholder="Year" onChange={(e) => setEntryForm((s) => ({ ...s, year: Number(e.target.value) }))} />
+            <input className="rounded border px-2 py-1 md:col-span-2" placeholder="Membership" onChange={(e) => setEntryForm((s) => ({ ...s, membership: e.target.value }))} />
+            <button className="gold-button rounded px-3 py-1 text-sm font-semibold text-slate-900 md:col-span-2" onClick={() => submitEntry("awards")}>Save Membership</button>
           </div>
-          {canManage && openForm === "awards_membership" && (
-            <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-              <input className="rounded border px-2 py-1" placeholder="Title" onChange={(e) => setEntryForm((s) => ({ ...s, title: e.target.value }))} />
-              <input className="rounded border px-2 py-1" type="number" placeholder="Year" onChange={(e) => setEntryForm((s) => ({ ...s, year: Number(e.target.value) }))} />
-              <input className="rounded border px-2 py-1 md:col-span-2" placeholder="Membership" onChange={(e) => setEntryForm((s) => ({ ...s, membership: e.target.value }))} />
-              <button className="gold-button rounded px-3 py-1 text-sm font-semibold text-slate-900 md:col-span-2" onClick={() => submitEntry("awards")}>Save Membership</button>
-            </div>
-          )}
+        )}
+        <div className="space-y-2">
           {membershipItems.map((item) => (
-            <div key={`membership-${item.id}`} className="rounded border border-slate-200 bg-white p-2">
+            <div key={`membership-${item.id}`} className="rounded border border-emerald-200 bg-emerald-50 p-3">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-sm"><span className="font-semibold">{item.title || "Membership"}</span> ({item.year || "-"}) - {item.membership}</p>
+                <p className="text-sm"><span className="font-semibold">Membership:</span> {item.membership} <span className="text-slate-600">({item.title || "Untitled"}, {item.year || "-"})</span></p>
                 <div className="flex items-center gap-2">
                   {canManage && approvalBadge(Boolean(item.is_approved))}
                   <ItemActions canManage={canManage} isEditing={editKey === `awards:${item.id}`} onEdit={() => startEdit("awards", item)} onSave={() => saveEdit("awards", item.id)} onDelete={() => deleteRow("awards", item.id)} busy={busy} />
@@ -1031,24 +1025,22 @@ export default function FacultyProfile({
           ))}
           {!membershipItems.length && <p className="text-sm text-slate-500">No membership entries added.</p>}
         </div>
+      </Section>
 
-        <div id="awards-contributions" className="mt-4 space-y-2 scroll-mt-24 rounded border border-slate-200 bg-slate-50 p-3">
-          <div className="flex items-center justify-between gap-2">
-            <h3 className="text-lg font-semibold text-slate-800">Contributions</h3>
-            {canManage && <button className="rounded border border-blue-700 px-2 py-1 text-xs font-semibold text-blue-700" onClick={() => openAddForm("awards_contributions")}>+ Add</button>}
+      <Section id="contributions" title="Contributions" canManage={canManage} onAddClick={() => openAddForm("awards_contributions")}>
+        {canManage && openForm === "awards_contributions" && (
+          <div className="grid grid-cols-1 gap-2 rounded border border-slate-200 bg-blue-50 p-3 md:grid-cols-2">
+            <input className="rounded border px-2 py-1" placeholder="Title" onChange={(e) => setEntryForm((s) => ({ ...s, title: e.target.value }))} />
+            <input className="rounded border px-2 py-1" type="number" placeholder="Year" onChange={(e) => setEntryForm((s) => ({ ...s, year: Number(e.target.value) }))} />
+            <textarea className="rounded border px-2 py-1 md:col-span-2" rows={2} placeholder="Contributions" onChange={(e) => setEntryForm((s) => ({ ...s, contributions: e.target.value }))} />
+            <button className="gold-button rounded px-3 py-1 text-sm font-semibold text-slate-900 md:col-span-2" onClick={() => submitEntry("awards")}>Save Contribution</button>
           </div>
-          {canManage && openForm === "awards_contributions" && (
-            <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-              <input className="rounded border px-2 py-1" placeholder="Title" onChange={(e) => setEntryForm((s) => ({ ...s, title: e.target.value }))} />
-              <input className="rounded border px-2 py-1" type="number" placeholder="Year" onChange={(e) => setEntryForm((s) => ({ ...s, year: Number(e.target.value) }))} />
-              <textarea className="rounded border px-2 py-1 md:col-span-2" rows={2} placeholder="Contributions" onChange={(e) => setEntryForm((s) => ({ ...s, contributions: e.target.value }))} />
-              <button className="gold-button rounded px-3 py-1 text-sm font-semibold text-slate-900 md:col-span-2" onClick={() => submitEntry("awards")}>Save Contribution</button>
-            </div>
-          )}
+        )}
+        <div className="space-y-2">
           {contributionItems.map((item) => (
-            <div key={`contrib-${item.id}`} className="rounded border border-slate-200 bg-white p-2">
+            <div key={`contrib-${item.id}`} className="rounded border border-amber-200 bg-amber-50 p-3">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-sm"><span className="font-semibold">{item.title || "Contribution"}</span> ({item.year || "-"}) - {item.contributions}</p>
+                <p className="text-sm"><span className="font-semibold">Contribution:</span> {item.contributions} <span className="text-slate-600">({item.title || "Untitled"}, {item.year || "-"})</span></p>
                 <div className="flex items-center gap-2">
                   {canManage && approvalBadge(Boolean(item.is_approved))}
                   <ItemActions canManage={canManage} isEditing={editKey === `awards:${item.id}`} onEdit={() => startEdit("awards", item)} onSave={() => saveEdit("awards", item.id)} onDelete={() => deleteRow("awards", item.id)} busy={busy} />
